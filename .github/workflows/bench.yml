@@ -16,8 +16,7 @@ concurrency:
 
 jobs:
   render:
-    runs-on: sylphx-linux-standard
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

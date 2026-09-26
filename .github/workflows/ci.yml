@@ -22,8 +22,7 @@ concurrency:
 
 jobs:
   rust:
-    runs-on: sylphx-linux-standard
-    timeout-minutes: 20
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Verify static owned runner profiles
