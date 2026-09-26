@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   render:
-    runs-on: sylphx-linux-standard
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4

@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   rust:
-    runs-on: sylphx-linux-standard
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
