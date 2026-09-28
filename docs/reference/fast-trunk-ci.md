@@ -18,6 +18,7 @@
 
 ## CI scope
 
-Blocking: lint/typecheck, affected tests, schema/migration safety, narrow security.
+Blocking: lint/typecheck, affected tests, schema/migration safety, narrow security,
+non-v7 identifiers on added lines.
 
 Not in source CI: production Docker/release image builds, disposable ship binaries for ordinary tips.
