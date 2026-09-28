@@ -17,6 +17,7 @@ python3 scripts/check-duplication.py
 python3 scripts/check-config-parity.py
 python3 scripts/check-module-budget.py
 python3 scripts/check-owned-runner-profiles.sh
+python3 brand/build.py --check
 cargo run
 cargo build --release
 ```
@@ -40,6 +41,9 @@ optional `GITHUB_TOKEN`/`GITHUB_TOKENS` for live cards).
 - Never require a user token. A server token is optional capacity.
 - Stateless SVG only on the hot path — no headless browser or AI generation.
 - Soft watermark via `credit` stays opt-in.
+- Brand assets: the masters live in `brand/` (usage sheet `brand/README.md`);
+  `static/favicon.svg` and `static/og.png` are generated copies, so change the
+  master and run `python3 brand/build.py` instead of editing them.
 - SVG attribute values come only from validated tokens or static strings; all
   user text is escaped.
 - Deploy identity: the image embeds the git revision (`SYLPHX_GIT_COMMIT_SHA` /
