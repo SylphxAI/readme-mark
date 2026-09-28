@@ -170,4 +170,4 @@ Not registered. Owner decision owner#781: no trademark filings before the produc
 
 ## Similarity check
 
-<!-- similarity: filled in by review -->
+Checked 2026-09-28. "Mark" is a common English word; as a product name it is used by Sylphx for README images (mark.sylphx.com) and by the separate SylphxAI/mark repository. The shields.io-compatible README-image category has no other product called Mark (shields.io, capsule-render, skill-icons, readme-typing-svg, github-readme-stats). A plain word is hard to protect and easy to confuse in search; the host name carries the identity. Mark (an M stroke on a dark tile): M monograms are common; no close match found in this category.
