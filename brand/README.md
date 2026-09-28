@@ -22,8 +22,10 @@ the surface copies with the standard library alone).
   Wales, company number 16438428. Registered office: 128 City Road, London
   EC1V 2NX." (`static/index.html` footer, PR #87). Sylphx Limited is the
   operator and is never part of the brand.
-- Local-script names: none. The product ships English only and every public
-  URL is ASCII.
+- Local-script names: none. The product's own copy is English, and CJK appears
+  only as user content the renderer measures and crops (`monogram` and the
+  full-width advances in `src/capabilities/mark/domain/text.rs` and
+  `widths.rs`). Every public URL is ASCII.
 - Capitals in the logo: none. The logo is the M alone; the product has no
   wordmark, so no casing lives in an image — "Mark" is always set in the
   surrounding UI's type.
@@ -37,7 +39,7 @@ the surface copies with the standard library alone).
 | The M alone, dark background | `svg/mark-symbol-on-dark.svg` |
 | One-colour reproduction (print, engraving, stamps) | `svg/mark-symbol-black.svg`, `svg/mark-symbol-white.svg` |
 | Maskable icon and Apple touch icon | `svg/mark-maskable.svg` |
-| Browser tab | `favicon/favicon.svg` (32 px grid), `favicon/favicon.ico` (16, 32, 48) |
+| Browser tab | `favicon/favicon.svg` (32 px grid), `favicon/favicon.ico` (16, 32, 48), `favicon/favicon-{16,32,48}.png` |
 | Home screen, store listing, web app | `app-icon/icon-{192,512,1024}.png`, `app-icon/apple-touch-icon-180.png` |
 | Android maskable | `app-icon/icon-maskable-{192,512}.png` |
 | Social card, 1200×630 | `og/mark-og.png` |
