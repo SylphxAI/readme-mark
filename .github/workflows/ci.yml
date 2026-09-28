@@ -36,6 +36,8 @@ jobs:
         run: python3 scripts/check-config-parity.py
       - name: Module budget
         run: python3 scripts/check-module-budget.py
+      - name: Brand home
+        run: python3 brand/build.py --check
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt

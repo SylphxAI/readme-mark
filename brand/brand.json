@@ -1,0 +1,17 @@
+{
+  "name": "Mark",
+  "icon": {
+    "master": "svg/mark-app-icon.svg",
+    "small": "svg/mark-app-icon.svg",
+    "apple_touch": "svg/mark-maskable.svg",
+    "maskable": "svg/mark-maskable.svg",
+    "palette": ["#0B0C10", "#FFFFFF"],
+    "snap_threshold": 0.5,
+    "sizes": [180, 192, 512, 1024],
+    "maskable_sizes": [192, 512]
+  },
+  "outputs": {
+    "static/favicon.svg": "favicon/favicon.svg",
+    "static/og.png": "og/mark-og.png"
+  }
+}
