@@ -186,7 +186,7 @@ Or paste any of those URLs into the [studio](https://mark.sylphx.com) and edit i
 | `font` | `sans` `mono` | `sans` |
 | `width`, `height` | Pixels, up to 1600 × 900. Type scales with the canvas (1280×640 makes a social preview). | `880`, `220` |
 
-`transparent` draws text only, in GitHub's text colours for the viewer's light or dark scheme. Names from earlier versions (`plasma`, `constellation`, `tokyonight`, `glitch`, `plate`, …) still render: each maps to the closest style, theme, motion or layout above.
+`transparent` draws text only, in GitHub's text colours for the viewer's light or dark scheme. Older names (`plasma`, `constellation`, `tokyonight`, `glitch`, `plate`, …) still render: each maps to the closest style, theme, motion or layout above.
 
 </details>
 
@@ -256,7 +256,7 @@ In-process render latency (release build, 400 runs per URL, p50). The [Bench wor
 | Tech strip, 8 icons | 23 KB | 41 µs |
 | Profile card | 2.0 KB | 11 µs |
 
-Live readback on 2026-09-25 from a server in Europe with [`scripts/measure-live.sh`](scripts/measure-live.sh) (15 requests per URL, p50). "Wait" is the time from sending the request to the first byte, not counting DNS, TCP or TLS:
+Live measurement from a server in Europe with [`scripts/measure-live.sh`](scripts/measure-live.sh) (15 requests per URL, p50). "Wait" is the time from sending the request to the first byte, not counting DNS, TCP or TLS:
 
 | URL | Wait | cf-cache-status |
 | --- | ---: | --- |
@@ -297,7 +297,7 @@ Mark stands on ideas from [shields.io](https://github.com/badges/shields),
 and speaks their URL formats so you can switch without rewriting.
 Brand icons come from [Simple Icons](https://simpleicons.org) (CC0). Brand names and logos are trademarks of their owners; their use here does not imply endorsement.
 
-Decisions: [`docs/vision.md`](docs/vision.md) · [`docs/capabilities.md`](docs/capabilities.md) · [ADR-0005](docs/adr/ADR-0005-readme-visuals-toolkit.md).
+Vision and capabilities: [`docs/vision.md`](docs/vision.md) · [`docs/capabilities.md`](docs/capabilities.md) · [ADR-0005](docs/adr/ADR-0005-readme-visuals-toolkit.md).
 
 ## License
 
