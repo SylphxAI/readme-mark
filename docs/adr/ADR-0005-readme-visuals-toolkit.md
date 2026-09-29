@@ -6,7 +6,7 @@
   this repository full autonomy, including overriding earlier vision and
   non-goals where they block that goal. Amends ADR-0003 (one grammar, no live
   data) and ADR-0004 (neutral catalog). Supersedes the "Not doing" and
-  "Non-goals" lists they fed into `docs/vision.md` and `PROJECT.md`.
+  "Non-goals" lists they fed into `docs/vision.md`.
 
 ## Context
 
@@ -86,7 +86,7 @@ Mark renders good SVG, but almost nobody can find it or switch to it:
 
 ## Consequences
 
-- `docs/vision.md`, `docs/capabilities.md`, `PROJECT.md`, and `AGENTS.md`
+- `docs/vision.md`, `docs/capabilities.md`, and `AGENTS.md`
   hazards are rewritten to match.
 - `MARK-STATS` becomes `rename-to:MARK-LIVE`. The new identities are
   `MARK-DIALECTS`, `MARK-ICONS`, `MARK-TYPING`, and `MARK-LIVE`.

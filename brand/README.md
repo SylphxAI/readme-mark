@@ -9,9 +9,8 @@ the surface copies with the standard library alone).
 ## Name
 
 - Running text: **Mark** — capital M, one word. Not "MARK", not "the Mark
-  service". `docs/vision.md` ("Mark (repository `readme-mark`) is the free
-  README-visuals toolkit") and `PROJECT.md` ("# Mark (readme-mark)") are the
-  source.
+  service". `docs/vision.md` ("Mark (repository `readme-mark`) makes README
+  images from one URL") is the source.
 - Repository: `SylphxAI/readme-mark`. Canonical host: `https://mark.sylphx.com`
   (ADR-0005 decision 3: the host never changes and every URL that was public
   there stays valid).
