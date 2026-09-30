@@ -589,7 +589,7 @@ async fn root_is_the_studio_unless_the_query_is_a_typing_url() {
         ctype.starts_with("image/svg+xml"),
         "typing dialect: {ctype}"
     );
-    assert!(body.contains("<textPath") && body.contains(">World</textPath>"));
+    assert!(body.contains("<textPath") && body.contains(">World<"));
     let (_, _, native) = get("/typing?lines=Hello;World&center=true").await;
     assert_eq!(body, native, "host swap and /typing are one render");
 }

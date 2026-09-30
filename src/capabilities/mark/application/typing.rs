@@ -11,12 +11,25 @@ use crate::capabilities::mark::domain::svg::{esc, svg_doc_with};
 use crate::capabilities::mark::domain::text::requested_family;
 use crate::capabilities::mark::domain::{MarkSpec, TypingSpec};
 
+/// Blinking caret glyph appended to a typed line. It sits in the same text run,
+/// so the typing reveal uncovers it exactly at the end of the text, whatever
+/// font the viewer resolves.
+const CARET: &str = "\u{258F}";
+
+/// A viewer who asks for reduced motion sees this poster frame instead of the
+/// animation: the same text, fully typed, no movement. SMIL cannot read the
+/// media query, so both layers are drawn and CSS picks one.
+const MOTION_STYLE: &str = "<style>.mk-still{display:none}\
+     @media (prefers-reduced-motion:reduce){.mk-live{display:none}.mk-still{display:inline}}</style>";
+
 pub fn render(spec: &MarkSpec) -> String {
     let t = &spec.typing;
     let family = requested_family(&t.font);
     let last = t.lines.len().saturating_sub(1);
-    let mut body = String::new();
+    let mut live = String::new();
+    let mut still = String::new();
     let transparent = t.background.len() == 9 && t.background.ends_with("00");
+    let mut body = String::from(MOTION_STYLE);
     if !transparent {
         body.push_str(&format!(
             "<rect width=\"100%\" height=\"100%\" fill=\"{}\"/>",
@@ -29,21 +42,48 @@ pub fn render(spec: &MarkSpec) -> String {
         } else {
             single_line_animate(t, i, last)
         };
-        body.push_str(&format!(
-            "<path id=\"path{i}\">{animate}</path>\
-             <text font-family=\"{family}\" fill=\"{color}\" font-size=\"{size}\" font-weight=\"{weight}\" \
-             dominant-baseline=\"{baseline}\" x=\"{x}\" text-anchor=\"{anchor}\" letter-spacing=\"{spacing}\">\
-             <textPath href=\"#path{i}\" xlink:href=\"#path{i}\">{text}</textPath></text>",
+        let attrs = format!(
+            "font-family=\"{family}\" fill=\"{color}\" font-size=\"{size}\" font-weight=\"{weight}\" \
+             dominant-baseline=\"{baseline}\" text-anchor=\"{anchor}\" letter-spacing=\"{spacing}\"",
             color = t.color,
             size = t.size,
             weight = t.weight,
             baseline = if t.v_center { "middle" } else { "auto" },
-            x = if t.center { "50%" } else { "0%" },
             anchor = if t.center { "middle" } else { "start" },
             spacing = t.letter_spacing,
+        );
+        let x = if t.center { "50%" } else { "0%" };
+        // The caret follows the line being typed: every line on one baseline,
+        // only the last line when the lines are stacked.
+        let caret = if t.caret && (!t.multiline || i == last) {
+            format!(
+                "<tspan fill-opacity=\"1\" dx=\"2\">{CARET}<animate attributeName=\"fill-opacity\" \
+                 values=\"1;0\" dur=\"1.1s\" begin=\"0s\" repeatCount=\"indefinite\" calcMode=\"discrete\"/></tspan>"
+            )
+        } else {
+            String::new()
+        };
+        live.push_str(&format!(
+            "<path id=\"path{i}\">{animate}</path>\
+             <text {attrs} x=\"{x}\"><textPath href=\"#path{i}\" xlink:href=\"#path{i}\">{text}{caret}</textPath></text>",
             text = esc(line),
         ));
+        if !t.multiline && i > 0 {
+            continue;
+        }
+        let y = if t.multiline {
+            f64::from(t.size + 5) * (i + 1) as f64
+        } else {
+            f64::from(t.height) / 2.0
+        };
+        still.push_str(&format!(
+            "<text {attrs} x=\"{x}\" y=\"{y}\">{}</text>",
+            esc(line)
+        ));
     }
+    body.push_str(&format!(
+        "<g class=\"mk-live\">{live}</g><g class=\"mk-still\">{still}</g>"
+    ));
     svg_doc_with(
         t.width,
         t.height,
@@ -70,7 +110,8 @@ fn single_line_animate(t: &TypingSpec, i: usize, last: usize) -> String {
     let total = duration + pause;
     format!(
         "<animate id=\"d{i}\" attributeName=\"d\" begin=\"{begin}\" dur=\"{total}ms\" fill=\"{fill}\" \
-         values=\"{empty} ; {full} ; {full} ; {end}\" keyTimes=\"0;{k1};{k2};1\"/>",
+         calcMode=\"spline\" values=\"{empty} ; {full} ; {full} ; {end}\" keyTimes=\"0;{k1};{k2};1\" \
+         keySplines=\"0 0 1 1;0 0 1 1;0.55 0 1 0.45\"/>",
         fill = if freeze { "freeze" } else { "remove" },
         end = if freeze { &full } else { &empty },
         k1 = 0.8 * duration / total,
@@ -138,7 +179,7 @@ mod tests {
         });
         assert!(svg.contains("begin=\"0s\" dur=\"5000ms\" fill=\"remove\""));
         assert!(svg.contains(
-            "fill=\"freeze\" values=\"m0,25 h0 ; m0,25 h400 ; m0,25 h400 ; m0,25 h400\""
+            "values=\"m0,25 h0 ; m0,25 h400 ; m0,25 h400 ; m0,25 h400\""
         ));
     }
 
@@ -167,5 +208,33 @@ mod tests {
         assert!(svg.contains("<rect width=\"100%\" height=\"100%\" fill=\"#112233\"/>"));
         assert!(svg.contains("x=\"50%\" text-anchor=\"middle\""));
         assert!(svg.contains("dominant-baseline=\"middle\""));
+    }
+
+    #[test]
+    fn caret_is_on_by_default_and_reduced_motion_gets_a_still_frame() {
+        let svg = typing(TypingSpec {
+            lines: vec!["a".into(), "b".into()],
+            ..Default::default()
+        });
+        assert_eq!(svg.matches(CARET).count(), 2, "one caret per line");
+        assert!(svg.contains("prefers-reduced-motion:reduce"));
+        assert!(svg.contains("class=\"mk-still\"><text"));
+        assert_eq!(svg.matches("<text").count(), 3, "two live lines and one still");
+        let off = typing(TypingSpec {
+            caret: false,
+            ..Default::default()
+        });
+        assert!(!off.contains(CARET));
+    }
+
+    #[test]
+    fn stacked_lines_keep_one_caret_and_a_still_line_each() {
+        let svg = typing(TypingSpec {
+            lines: vec!["a".into(), "b".into()],
+            multiline: true,
+            ..Default::default()
+        });
+        assert_eq!(svg.matches(CARET).count(), 1);
+        assert_eq!(svg.matches("<text").count(), 4);
     }
 }

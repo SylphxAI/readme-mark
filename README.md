@@ -19,7 +19,8 @@
 
 ---
 
-Every image in this README is a live URL served by Mark. Paste a URL into
+Every image in this README is a live URL served by Mark (repo: `readme-mark`,
+formerly `SylphxAI/mark`) at <https://mark.sylphx.com>. Paste a URL into
 any README, issue, or site and it renders — nothing to install, no account, no
 API key.
 
@@ -214,7 +215,7 @@ Uses shields.io static-badge syntax: `--` is a dash, `__` is an underscore, `_` 
 <details>
 <summary><b>Typing</b> — <code>/typing</code> (also <code>/?lines=</code>)</summary>
 
-The same parameters as readme-typing-svg: `lines` (separated by `;`), `font`, `weight`, `size`, `color`, `background`, `center`, `vCenter`, `multiline`, `width`, `height`, `duration`, `pause`, `repeat`, `random`, `letterSpacing`, `separator`.
+The same parameters as readme-typing-svg: `lines` (separated by `;`), `font`, `weight`, `size`, `color`, `background`, `center`, `vCenter`, `multiline`, `width`, `height`, `duration`, `pause`, `repeat`, `random`, `letterSpacing`, `separator`, plus `caret` (default `true`; `caret=false` drops the blinking caret). Under `prefers-reduced-motion` the image shows the fully typed first line instead of moving.
 
 </details>
 
