@@ -154,7 +154,7 @@
   .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   .dock { display:none; }
   .noscript { padding:16px; }
-  @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; scroll-behavior:auto !important; } }
   @media (max-width: 980px) {
     .studio { grid-template-columns:minmax(0,1fr); grid-template-areas:"preview" "aside" "gallery"; }
     aside.panel { position:static; max-height:none; }
@@ -424,8 +424,9 @@ const KINDS = {
       F.toggle("vCenter","Center vertically",false,{sd:false}),
       F.toggle("multiline","Keep previous lines",false,{sd:false}),
       F.toggle("repeat","Loop",true,{sd:true}),
+      F.toggle("caret","Blinking caret",true,{sd:true}),
     ],
-    url:(s)=>"/typing?"+qs(s,["lines","font","size","color","width","height","duration","pause","center","vCenter","multiline","repeat"]),
+    url:(s)=>"/typing?"+qs(s,["lines","font","size","color","width","height","duration","pause","center","vCenter","multiline","repeat","caret"]),
     presets:[
       {name:"Intro", s:{lines:"Hi there, I'm a developer\nI build tools for the web\nWelcome to my README"}},
       {name:"Centered", s:{lines:"Open source maintainer\nRust · TypeScript · Cloud",center:true,vCenter:true,width:"600",height:"60",color:"F15BB5",size:"24"}},

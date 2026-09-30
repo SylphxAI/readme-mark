@@ -47,6 +47,8 @@ pub struct TypingSpec {
     /// Hold after a line is typed, ms.
     pub pause: u32,
     pub repeat: bool,
+    /// A soft caret after the typed line (`caret=false` turns it off).
+    pub caret: bool,
     /// A CSS keyword or `<number><unit>`, validated.
     pub letter_spacing: String,
 }
@@ -68,6 +70,7 @@ impl Default for TypingSpec {
             duration: 5000,
             pause: 0,
             repeat: true,
+            caret: true,
             letter_spacing: "normal".into(),
         }
     }
@@ -110,6 +113,7 @@ impl TypingSpec {
             duration: positive(get("duration"), d.duration).min(600_000),
             pause: non_negative(get("pause"), d.pause).min(600_000),
             repeat: flag(get("repeat"), d.repeat),
+            caret: flag(get("caret"), d.caret),
             letter_spacing: get("letterSpacing")
                 .filter(|s| valid_letter_spacing(s))
                 .map(str::to_string)
