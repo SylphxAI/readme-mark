@@ -178,9 +178,7 @@ mod tests {
             ..Default::default()
         });
         assert!(svg.contains("begin=\"0s\" dur=\"5000ms\" fill=\"remove\""));
-        assert!(svg.contains(
-            "values=\"m0,25 h0 ; m0,25 h400 ; m0,25 h400 ; m0,25 h400\""
-        ));
+        assert!(svg.contains("values=\"m0,25 h0 ; m0,25 h400 ; m0,25 h400 ; m0,25 h400\""));
     }
 
     #[test]
@@ -219,7 +217,11 @@ mod tests {
         assert_eq!(svg.matches(CARET).count(), 2, "one caret per line");
         assert!(svg.contains("prefers-reduced-motion:reduce"));
         assert!(svg.contains("class=\"mk-still\"><text"));
-        assert_eq!(svg.matches("<text").count(), 3, "two live lines and one still");
+        assert_eq!(
+            svg.matches("<text").count(),
+            3,
+            "two live lines and one still"
+        );
         let off = typing(TypingSpec {
             caret: false,
             ..Default::default()
