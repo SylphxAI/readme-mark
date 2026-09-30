@@ -204,7 +204,8 @@ mod tests {
         });
         assert!(svg.contains("&lt;b&gt;&amp;"));
         assert!(svg.contains("<rect width=\"100%\" height=\"100%\" fill=\"#112233\"/>"));
-        assert!(svg.contains("x=\"50%\" text-anchor=\"middle\""));
+        assert!(svg.contains("text-anchor=\"middle\""));
+        assert!(svg.contains("x=\"50%\""));
         assert!(svg.contains("dominant-baseline=\"middle\""));
     }
 
@@ -218,7 +219,7 @@ mod tests {
         assert!(svg.contains("prefers-reduced-motion:reduce"));
         assert!(svg.contains("class=\"mk-still\"><text"));
         assert_eq!(
-            svg.matches("<text").count(),
+            svg.matches("<text ").count(),
             3,
             "two live lines and one still"
         );
@@ -237,6 +238,6 @@ mod tests {
             ..Default::default()
         });
         assert_eq!(svg.matches(CARET).count(), 1);
-        assert_eq!(svg.matches("<text").count(), 4);
+        assert_eq!(svg.matches("<text ").count(), 4);
     }
 }
