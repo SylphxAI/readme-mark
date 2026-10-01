@@ -285,7 +285,7 @@ docker run --rm -p 8787:8787 mark               # → http://localhost:8787
 
 Development: `cargo run`, `cargo test`. After reviewing a visual change, refresh the snapshots with `UPDATE_SNAPSHOTS=1 cargo test --test visual_snapshots`.
 
-The logo, icons, colours and type live in [`brand/`](brand/README.md) — the usage sheet, the vector masters, the generated favicons and app icons, and the tokens. `static/favicon.svg` and `static/og.png` are copies of the files there; `python3 brand/build.py` rebuilds both, `python3 brand/build.py --check` verifies them.
+The logo, icons, colours and type live in [`brand/`](brand/README.md) — the usage sheet, the vector masters, the generated favicons and app icons, and the tokens. `static/favicon.svg` and `static/og.png` are copies of the files there; the [pinned shared recipe](brand/README.md#shared-generator) regenerates and verifies them (`OPERATION=write`), or verifies only (`OPERATION=check`), preserving Mark’s intrinsic render dimensions.
 
 ## Credits
 

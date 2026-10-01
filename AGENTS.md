@@ -25,7 +25,7 @@ paths: [docs/capabilities.md](docs/capabilities.md). Decision of record:
 - Stateless SVG only on the hot path: no headless browser, no AI generation.
 - Brand assets are generated from the masters in `brand/`
   ([usage sheet](brand/README.md)); `static/favicon.svg` and `static/og.png` are
-  copies, so change the master and run `python3 brand/build.py`.
+  copies, so change the master and run the pinned shared generator ([usage](brand/README.md)).
 
 ## Judged by
 
@@ -33,7 +33,7 @@ CI (`.github/workflows/ci.yml`) is the gate: `cargo fmt --all -- --check`,
 `cargo clippy --all-targets -- -D warnings`, `cargo test --locked` (includes
 `public_contract` and `visual_snapshots`), `scripts/check-source-hygiene.py`,
 `check-duplication.py`, `check-config-parity.py`, `check-module-budget.py`,
-`bash scripts/check-owned-runner-profiles.sh`, and `python3 brand/build.py --check`.
+`bash scripts/check-owned-runner-profiles.sh`, and the pinned shared brand check ([usage](brand/README.md)).
 After a reviewed visual change, refresh with
 `UPDATE_SNAPSHOTS=1 cargo test --test visual_snapshots`.
 
