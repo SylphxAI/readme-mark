@@ -37,7 +37,9 @@ jobs:
       - name: Module budget
         run: python3 scripts/check-module-budget.py
       - name: Brand home
-        run: python3 brand/build.py --check
+        uses: SylphxAI/.github/.github/actions/brand@a6c81b4bcda66bf624f0a68e25e63b3c0ed043eb # shared brand generator
+        with:
+          render-fit: intrinsic
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
