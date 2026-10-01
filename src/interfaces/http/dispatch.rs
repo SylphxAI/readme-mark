@@ -12,7 +12,7 @@
 use std::collections::HashMap;
 
 use axum::extract::{Query, RawQuery, State};
-use axum::http::{HeaderMap, Uri};
+use axum::http::{HeaderMap, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
 
 use super::response::{if_none_match, parse_bool, svg_response_conditional};
@@ -64,5 +64,24 @@ pub(crate) async fn api(
         let svg = capsule::render(&pairs, query, credit);
         return svg_response_conditional(&svg, if_none_match(&headers));
     }
-    catalog::api_index(State(st)).await.into_response()
+    let wants_html = headers
+        .get(axum::http::header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v.contains("text/html"));
+    if wants_html {
+        return (
+            StatusCode::FOUND,
+            [
+                (axum::http::header::LOCATION, "/docs"),
+                (axum::http::header::VARY, "Accept"),
+            ],
+        )
+            .into_response();
+    }
+    let mut res = catalog::api_index(State(st)).await.into_response();
+    res.headers_mut().insert(
+        axum::http::header::VARY,
+        axum::http::HeaderValue::from_static("Accept"),
+    );
+    res
 }

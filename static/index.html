@@ -20,6 +20,8 @@
 <meta name="twitter:image" content="https://mark.sylphx.com/og.png" />
 <link rel="canonical" href="https://mark.sylphx.com/" />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Mark","url":"https://mark.sylphx.com/","applicationCategory":"DeveloperApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"Sylphx Limited","url":"https://sylphx.com"}}</script>
 <style>
   :root {
     --bg:#0B0C10; --panel:#111318; --elev:#171A21; --hover:#1D212A; --fg:#EDEFF4; --muted:#A1A7B5;
@@ -54,6 +56,7 @@
   .intro { padding:40px 0 28px; display:grid; gap:14px; max-width:760px; }
   .intro h1 { margin:0; font-size:clamp(2rem, 5vw, 3.25rem); letter-spacing:-0.04em; line-height:1.04; font-weight:700; text-wrap:balance; }
   .intro h1 span { color:var(--muted); }
+  .intro .proof { font-size:.8125rem; color:var(--faint); }
   .intro p { margin:0; color:var(--muted); font-size:1.0625rem; line-height:1.55; max-width:620px; }
   .import { display:flex; gap:8px; margin-top:8px; }
   .import input { flex:1; min-width:0; height:40px; background:var(--panel); border:1px solid var(--line2); border-radius:10px; padding:0 12px; font-size:.875rem; outline:none; transition:border-color .15s; }
@@ -148,15 +151,19 @@
   .dtable th { color:var(--faint); font-weight:600; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; }
   .dtable td:first-child code { color:var(--faint); }
   .dtable code { font-family:var(--mono); font-size:.76rem; color:var(--fg); word-break:break-all; }
-  footer { padding:40px 0 48px; font-size:.8125rem; color:var(--faint); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; border-top:1px solid var(--line); margin-top:48px; }
-  footer a { color:var(--muted); }
+  .site-footer { padding:40px 0 48px; font-size:.8125rem; color:var(--faint); border-top:1px solid var(--line); margin-top:48px; display:grid; gap:10px; }
+  .site-footer p { margin:0; max-width:900px; }
+  .site-footer a { color:var(--muted); }
+  .footer-links { display:flex; flex-wrap:wrap; gap:6px 18px; margin-bottom:4px; }
+  .footer-links a { text-decoration:none; font-weight:560; }
+  .footer-links a:hover { color:var(--fg); text-decoration:underline; }
   .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(16px); background:var(--fg); color:var(--bg); padding:10px 16px; border-radius:10px; font-size:.84rem; font-weight:600; opacity:0; pointer-events:none; transition:opacity .18s, transform .18s; z-index:20; box-shadow:0 8px 30px rgba(0,0,0,.3); }
   .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   .dock { display:none; }
   .noscript { padding:16px; }
   @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; scroll-behavior:auto !important; } }
   @media (max-width: 980px) {
-    .studio { grid-template-columns:minmax(0,1fr); grid-template-areas:"preview" "aside" "gallery"; }
+    .studio { grid-template-columns:minmax(0,1fr); grid-template-areas:"preview" "gallery" "aside"; }
     aside.panel { position:static; max-height:none; }
     .intro { padding:24px 0 20px; }
   }
@@ -165,7 +172,8 @@
     .import { flex-direction:column; }
     .import input, .import .btn { height:44px; flex:none; }
     .stage { min-height:180px; padding:20px 12px; }
-    .embed .actions .btn:not(.keep) { display:none; }
+    .embed .actions .btn { display:none; }
+    .kinds { -webkit-mask-image:linear-gradient(90deg,#000 85%,transparent); mask-image:linear-gradient(90deg,#000 85%,transparent); }
     .kinds button, .seg button, .chip { min-height:40px; }
     .themes { grid-template-columns:repeat(4,1fr); }
     .preset-grid { grid-template-columns:1fr 1fr; gap:8px; }
@@ -185,8 +193,7 @@
       Mark
     </a>
     <nav class="toplinks">
-      <a class="hide-sm" href="https://github.com/SylphxAI/readme-mark#readme">Docs</a>
-      <a class="hide-sm" href="/api/v1/catalog">API</a>
+      <a href="/docs">Docs</a>
       <a href="https://github.com/SylphxAI/readme-mark">GitHub</a>
     </nav>
   </header>
@@ -194,6 +201,7 @@
   <section class="intro">
     <h1>Beautiful README images. <span>From one URL.</span></h1>
     <p>Banners, badges, typing text, tech icons and GitHub stats cards. Free, no token, no signup. Pick a style, make it yours, copy the Markdown.</p>
+    <p class="proof">8 banner styles · shields-compatible badges · 3,400+ tech icons · live GitHub cards · drop-in for 8 popular README services</p>
     <form class="import" id="importForm" autocomplete="off">
       <input id="importBox" type="text" spellcheck="false" aria-label="Paste an image URL to edit" placeholder="Paste a shields.io, capsule-render, skill-icons or readme-stats URL to edit it here" />
       <button class="btn" type="submit">Edit URL</button>
@@ -205,7 +213,7 @@
     <div class="panel noscript">
       <p>The studio needs JavaScript. Every image is a plain URL, for example:</p>
       <p><img src="/api/v1/mark/hero?type=waving&amp;text=Hello%2C%20README&amp;desc=Beautiful%20images%20from%20one%20URL" alt="Example banner" width="880" height="220" loading="lazy" style="max-width:100%;height:auto" /></p>
-      <p><a href="/badge/build-passing-brightgreen">/badge/build-passing-brightgreen</a> · <a href="/api/v1/catalog">catalog</a></p>
+      <p><a href="/badge/build-passing-brightgreen">/badge/build-passing-brightgreen</a> · <a href="/docs">docs</a></p>
     </div>
   </noscript>
 
@@ -252,19 +260,28 @@
   </main>
 
   <section class="dialects">
-    <h2>Already using another service?</h2>
-    <p>Keep your URL and change only the host. Mark reads the same parameters.</p>
+    <h2>Switch from shields.io, capsule-render, skill-icons or readme-stats</h2>
+    <p>Keep your URL and change only the host. Mark reads the same parameters, so nothing else changes.</p>
     <table class="dtable">
       <thead><tr><th>From</th><th>To</th></tr></thead>
-      <tbody id="dialectRows"></tbody>
+      <tbody>
+        <tr><td><code>img.shields.io/badge/build-passing-brightgreen</code></td><td><code>mark.sylphx.com/badge/build-passing-brightgreen</code></td></tr>
+        <tr><td><code>img.shields.io/github/stars/owner/repo</code></td><td><code>mark.sylphx.com/github/stars/owner/repo</code></td></tr>
+        <tr><td><code>img.shields.io/npm/v/package</code></td><td><code>mark.sylphx.com/npm/v/package</code></td></tr>
+        <tr><td><code>capsule-render.vercel.app/api?type=waving&amp;text=Hi</code></td><td><code>mark.sylphx.com/api?type=waving&amp;text=Hi</code></td></tr>
+        <tr><td><code>skillicons.dev/icons?i=rust,ts</code></td><td><code>mark.sylphx.com/icons?i=rust,ts</code></td></tr>
+        <tr><td><code>readme-typing-svg.demolab.com?lines=Hello;World</code></td><td><code>mark.sylphx.com/?lines=Hello;World</code></td></tr>
+        <tr><td><code>github-readme-stats.vercel.app/api?username=you</code></td><td><code>mark.sylphx.com/api?username=you</code></td></tr>
+        <tr><td><code>github-readme-stats.vercel.app/api/top-langs?username=you</code></td><td><code>mark.sylphx.com/api/top-langs?username=you</code></td></tr>
+        <tr><td><code>github-readme-stats.vercel.app/api/pin?username=you&amp;repo=r</code></td><td><code>mark.sylphx.com/api/pin?username=you&amp;repo=r</code></td></tr>
+        <tr><td><code>streak-stats.demolab.com?user=you</code></td><td><code>mark.sylphx.com/?user=you</code></td></tr>
+        <tr><td><code>github-profile-trophy.vercel.app/?username=you</code></td><td><code>mark.sylphx.com/?username=you</code></td></tr>
+        <tr><td><code>api.star-history.com/svg?repos=owner/repo</code></td><td><code>mark.sylphx.com/svg?repos=owner/repo</code></td></tr>
+      </tbody>
     </table>
   </section>
 
-  <footer>
-    <span>Mark is open source (MIT). Every image is a cacheable URL — no account, no token.</span>
-    <span>Brand icons from <a href="https://simpleicons.org">Simple Icons</a> (CC0).</span>
-    <span>Mark is run by Sylphx Limited, registered in England and Wales, company number 16438428. Registered office: 128 City Road, London EC1V 2NX.</span>
-  </footer>
+  {{FOOTER}}
 </div>
 <div class="dock" id="dock">
   <button class="btn" id="dockUrl" type="button">Copy URL</button>
@@ -360,7 +377,7 @@ const KINDS = {
       F.seg("font","Font","sans",["sans","mono"],{sd:"sans",labels:{sans:"Sans",mono:"Mono"}}),
       F.grid([F.num("width","Width","880",{min:200,max:1600,sd:"880"}), F.num("height","Height","220",{min:40,max:900,sd:"220"})]),
     ],
-    url:(s)=>"/api/v1/mark/hero?"+qs(s,["text","desc","type","theme","color","layout","animation","font","width","height"]),
+    url:(s)=>"/api/v1/mark/hero.svg?"+qs(s,["text","desc","type","theme","color","layout","animation","font","width","height"]),
     presets:[
       {name:"Waves", s:{text:"Hello, README",desc:"Beautiful images from one URL",type:"waving",theme:"dark"}},
       {name:"Aurora", s:{text:"Aurora",desc:"Soft light for your project",type:"aurora",theme:"grape"}},
@@ -385,7 +402,7 @@ const KINDS = {
     ],
     url:(s)=>{
       const path = (s.label ? shieldsEscape(s.label)+"-" : "") + shieldsEscape(s.message||"") + "-" + encodeURIComponent(s.color||"blue");
-      return "/badge/"+path+optQs(qs(s,["labelColor","style","logo","logoColor"]));
+      return "/badge/"+path+".svg"+optQs(qs(s,["labelColor","style","logo","logoColor"]));
     },
     presets:[
       {name:"Build passing", s:{label:"build",message:"passing",color:"brightgreen"}},
@@ -405,7 +422,7 @@ const KINDS = {
       F.text("logo","Logo",""),
       F.text("color","Color override","",{hint:"Leave empty for automatic grading."}),
     ],
-    url:(s)=>"/api/v1/mark/score?"+qs(s,["label","value","max","style","logo","color"]),
+    url:(s)=>"/api/v1/mark/score.svg?"+qs(s,["label","value","max","style","logo","color"]),
     presets:[
       {name:"Agent-ready", s:{label:"agent-ready",value:"92",max:"100"}},
       {name:"Coverage", s:{label:"coverage",value:"74",max:"100",style:"flat-square"}},
@@ -426,7 +443,7 @@ const KINDS = {
       F.toggle("repeat","Loop",true,{sd:true}),
       F.toggle("caret","Blinking caret",true,{sd:true}),
     ],
-    url:(s)=>"/typing?"+qs(s,["lines","font","size","color","width","height","duration","pause","center","vCenter","multiline","repeat","caret"]),
+    url:(s)=>"/typing.svg?"+qs(s,["lines","font","size","color","width","height","duration","pause","center","vCenter","multiline","repeat","caret"]),
     presets:[
       {name:"Intro", s:{lines:"Hi there, I'm a developer\nI build tools for the web\nWelcome to my README"}},
       {name:"Centered", s:{lines:"Open source maintainer\nRust · TypeScript · Cloud",center:true,vCenter:true,width:"600",height:"60",color:"F15BB5",size:"24"}},
@@ -440,7 +457,7 @@ const KINDS = {
       F.seg("theme","Theme","dark",["dark","light"],{sd:"dark",labels:{dark:"Dark",light:"Light"}}),
       F.num("perline","Per line","15",{min:1,max:50,sd:"15"}),
     ],
-    url:(s)=>"/icons?"+qs(s,["i","theme","perline"]),
+    url:(s)=>"/icons.svg?"+qs(s,["i","theme","perline"]),
     presets:[
       {name:"Web", s:{i:"html,css,js,ts,react,nextjs,tailwind,vercel"}},
       {name:"Systems", s:{i:"rust,go,cpp,linux,docker,kubernetes,nginx"}},
@@ -460,10 +477,10 @@ const KINDS = {
     ],
     url:(s)=>{
       const card = s.card || "stats";
-      if (card === "streak") return "/streak?"+qs({user:s.username,theme:s.theme,hide_border:s.hide_border},["user","theme","hide_border"]);
-      if (card === "top-langs") return "/api/top-langs?"+qs(s,["username","theme","layout","hide_border"]);
-      if (card === "trophy") return "/trophy?"+qs(s,["username","theme"]);
-      if (card === "pin") return "/api/pin?"+qs(s,["username","repo","theme","hide_border"]);
+      if (card === "streak") return "/streak.svg?"+qs({user:s.username,theme:s.theme,hide_border:s.hide_border},["user","theme","hide_border"]);
+      if (card === "top-langs") return "/api/top-langs.svg?"+qs(s,["username","theme","layout","hide_border"]);
+      if (card === "trophy") return "/trophy.svg?"+qs(s,["username","theme"]);
+      if (card === "pin") return "/api/pin.svg?"+qs(s,["username","repo","theme","hide_border"]);
       return "/api?"+qs(s,["username","theme","show_icons","hide_border"]);
     },
     presets:[
@@ -484,7 +501,7 @@ const KINDS = {
       F.chips("type","Background","",["","aurora","mesh","spotlight","grid","waving","minimal"],{none:"card"}),
       F.grid([F.num("width","Width","640",{min:280,max:1200,sd:"640"}), F.num("height","Height","200",{min:80,max:400,sd:"200"})]),
     ],
-    url:(s)=>"/api/v1/mark/profile?"+qs(s,["text","desc","theme","color","type","width","height"]),
+    url:(s)=>"/api/v1/mark/profile.svg?"+qs(s,["text","desc","theme","color","type","width","height"]),
     presets:[
       {name:"Card", s:{text:"Ada Lovelace",desc:"Analytical engines and poetry",theme:"grape"}},
       {name:"Light", s:{text:"Grace Hopper",desc:"Compilers, COBOL, and nanoseconds",theme:"light"}},
@@ -497,7 +514,7 @@ const KINDS = {
       F.text("service","Service","app"),
       F.seg("style","Style","flat",["flat","flat-square","plastic","for-the-badge","social"],{sd:"flat",labels:{"flat":"Flat","flat-square":"Square","plastic":"Plastic","for-the-badge":"Bold","social":"Social"}}),
     ],
-    url:(s)=>"/api/v1/mark/deploy?"+qs(s,["service","style"]),
+    url:(s)=>"/api/v1/mark/deploy.svg?"+qs(s,["service","style"]),
     presets:[
       {name:"Flat", s:{service:"app"}},
       {name:"For the badge", s:{service:"app",style:"for-the-badge"}},
@@ -663,7 +680,7 @@ function fieldNode(f){
       const q = new URLSearchParams({ type:a, text:"Aa", animation:"none", width:"360", height:"120" });
       if (theme) q.set("theme", theme); else if (state.vals.color) q.set("color", state.vals.color);
       const b = el("button", { type:"button", class:"art" + (v === a ? " on" : ""), "aria-pressed":String(v === a), "aria-label":cap(a), onclick:()=>update(f.key, a, true) });
-      b.appendChild(el("img", { src: BASE + "/api/v1/mark/hero?" + q.toString(), alt:"", loading:"lazy", width:"360", height:"120" }));
+      b.appendChild(el("img", { src: BASE + "/api/v1/mark/hero.svg?" + q.toString(), alt:"", loading:"lazy", width:"360", height:"120" }));
       b.appendChild(el("span", { text:cap(a) }));
       grid.appendChild(b);
     }
@@ -751,7 +768,7 @@ function loadPreview(url){
     // Badges are ~20px tall: show small images at 2x so they can be judged.
     const small = probe.naturalWidth > 0 && probe.naturalWidth < 360 && probe.naturalHeight < 120;
     img.style.width = small ? (probe.naturalWidth * 2) + "px" : "";
-    img.src = url; img.classList.remove("loading"); previewUrl = url; previewReady = true;
+    img.src = url; img.alt = altText(); img.classList.remove("loading"); previewUrl = url; previewReady = true;
     document.getElementById("downloadBtn").disabled = false;
     setPreviewStatus("ready", probe.naturalWidth + " × " + probe.naturalHeight + " · SVG");
   };
@@ -861,21 +878,6 @@ async function copyText(s){
   try { await navigator.clipboard.writeText(s); }
   catch (_) { const ta = el("textarea"); ta.value = s; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
 }
-function renderDialects(){
-  const rows = [
-    ["img.shields.io/badge/build-passing-brightgreen", "/badge/build-passing-brightgreen"],
-    ["capsule-render.vercel.app/api?type=waving&text=Hello", "/api?type=waving&text=Hello"],
-    ["skillicons.dev/icons?i=rust,ts,docker", "/icons?i=rust,ts,docker"],
-    ["readme-typing-svg.demolab.com?lines=Hello;World", "/?lines=Hello;World"],
-    ["github-readme-stats.vercel.app/api?username=you", "/api?username=you"],
-    ["github-readme-stats.vercel.app/api/top-langs?username=you", "/api/top-langs?username=you"],
-    ["streak-stats.demolab.com?user=you", "/?user=you"],
-    ["github-profile-trophy.vercel.app/?username=you", "/?username=you"],
-  ];
-  const host = BASE.replace(/^https?:\/\//, "");
-  document.getElementById("dialectRows").innerHTML = rows.map(([a, b]) =>
-    "<tr><td><code>" + a.replace(/&/g,"&amp;") + "</code></td><td><code>" + (host + b).replace(/&/g,"&amp;") + "</code></td></tr>").join("");
-}
 function applyCatalog(cat){
   if (Array.isArray(cat.themes) && cat.themes.length) THEMES = cat.themes.map(t => typeof t === "string" ? t : t.id).filter(Boolean);
   if (cat.theme_palettes && typeof cat.theme_palettes === "object") PALETTES = cat.theme_palettes;
@@ -928,7 +930,6 @@ function init(){
     note.textContent = r.from ? "Imported from " + r.from + " — the same image, only the host changed." : "Loaded into the studio.";
     setKind(r.kind, r.vals, r.extra);
   });
-  renderDialects();
   loadCatalog().then(() => {
     let start = null;
     if (window.__MARK_BOOT__ && typeof window.__MARK_BOOT__ === "object") start = bootLegacy(window.__MARK_BOOT__);

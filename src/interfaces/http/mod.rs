@@ -5,16 +5,18 @@
 mod catalog;
 mod dispatch;
 mod health;
+mod pages;
 pub(crate) mod response;
 mod studio;
 
 use axum::extract::Request;
 use axum::http::uri::PathAndQuery;
 use axum::http::Uri;
+use axum::response::Redirect;
 use axum::routing::get;
 use axum::Router;
 use tower_http::cors::{Any, CorsLayer};
-use tower_http::services::{ServeDir, ServeFile};
+use tower_http::services::ServeDir;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 
 use crate::bootstrap::AppState;
@@ -141,10 +143,29 @@ fn routes(state: AppState) -> Router {
         // `/` is the studio, readme-typing-svg's image path (`?lines=`), and
         // github-readme-streak-stats' (`?user=`).
         .route("/", get(dispatch::root))
+        .route("/docs", get(|s| pages::page(s, "docs.html")))
+        .route(
+            "/legal/privacy",
+            get(|s| pages::page(s, "legal-privacy.html")),
+        )
+        .route("/legal/terms", get(|s| pages::page(s, "legal-terms.html")))
+        .route(
+            "/legal/acceptable-use",
+            get(|s| pages::page(s, "legal-acceptable-use.html")),
+        )
+        .route(
+            "/privacy",
+            get(|| async { Redirect::permanent("/legal/privacy") }),
+        )
+        .route(
+            "/terms",
+            get(|| async { Redirect::permanent("/legal/terms") }),
+        )
         // Anything else is a static file, or the Mark-styled 404 page with a
         // real 404 status.
         .fallback_service(
-            ServeDir::new("static").not_found_service(ServeFile::new("static/404.html")),
+            ServeDir::new("static")
+                .not_found_service(get(pages::not_found).with_state(state.clone())),
         )
         // Public SVG GET is origin-independent (`ACAO: *`, no credentials).
         // Default CorsLayer Vary includes Origin, which splits the CDN cache

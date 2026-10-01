@@ -11,8 +11,9 @@ use crate::capabilities::mark::domain::catalog::vocabulary;
 pub(crate) async fn api_index(State(st): State<AppState>) -> impl IntoResponse {
     Json(json!({
         "name": "Sylphx Mark",
-        "tagline": "Any URL. One image. Your brand.",
+        "tagline": "Beautiful README images from one URL.",
         "base": st.public_base,
+        "docs": format!("{}/docs", st.public_base),
         "endpoints": [
             "/api/v1/mark",
             "/api/v1/mark/{form}",
@@ -22,7 +23,7 @@ pub(crate) async fn api_index(State(st): State<AppState>) -> impl IntoResponse {
             "/?lines={a};{b}",
             "/api?type={art}&text={text}",
             "/static/v1",
-            "/api/v1/card/{stats|langs|streak|repo}?username=",
+            "/api/v1/card/{stats|langs|streak|repo|stars}?username=",
             "/api?username=",
             "/api/top-langs?username=",
             "/api/pin?username=&repo=",
@@ -31,6 +32,12 @@ pub(crate) async fn api_index(State(st): State<AppState>) -> impl IntoResponse {
             "/github/{stars|forks|license|last-commit}/{owner}/{repo}",
             "/github/v/release/{owner}/{repo}",
             "/npm/{v|dm|dw|dt|l}/{package}",
+            "/github/actions/workflow/status/{owner}/{repo}/{file}",
+            "/pub/{v|likes|points|dm}/{package}",
+            "/packagist/{v|dm|dd|dt}/{vendor}/{package}",
+            "/bundlephobia/{min|minzip}/{package}",
+            "/chrome-web-store/{v|users|rating|stars|rating-count}/{id}",
+            "/svg?repos={owner}/{repo}",
             "/api/v1/catalog",
             "/health"
         ]
