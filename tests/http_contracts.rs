@@ -644,3 +644,131 @@ async fn unknown_pages_answer_a_real_404_page() {
     assert!(ctype.starts_with("text/html"), "ctype={ctype}");
     assert!(body.contains("This page does not exist."));
 }
+
+async fn get_headers(
+    path: &str,
+    accept: Option<&str>,
+) -> (StatusCode, axum::http::HeaderMap, String) {
+    let mut req = Request::builder().uri(path);
+    if let Some(a) = accept {
+        req = req.header(axum::http::header::ACCEPT, a);
+    }
+    let res = app(state())
+        .oneshot(req.body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    let status = res.status();
+    let headers = res.headers().clone();
+    let body = res.into_body().collect().await.unwrap().to_bytes();
+    (status, headers, String::from_utf8_lossy(&body).into_owned())
+}
+
+#[tokio::test]
+async fn every_html_page_has_the_legal_footer() {
+    for (path, want) in [
+        ("/", StatusCode::OK),
+        ("/docs", StatusCode::OK),
+        ("/legal/privacy", StatusCode::OK),
+        ("/legal/terms", StatusCode::OK),
+        ("/legal/acceptable-use", StatusCode::OK),
+        ("/no-such-page", StatusCode::NOT_FOUND),
+    ] {
+        let (status, _, body) = get(path).await;
+        assert_eq!(status, want, "{path}");
+        for needle in [
+            "href=\"/legal/privacy\"",
+            "href=\"/legal/terms\"",
+            "href=\"/legal/acceptable-use\"",
+            "hi@sylphx.com",
+            "16438428",
+            "+44 333 335 7935",
+            "128 City Road",
+        ] {
+            assert!(body.contains(needle), "{path} lacks {needle}");
+        }
+        assert!(!body.contains("{{"), "{path} has an unfilled placeholder");
+    }
+}
+
+#[tokio::test]
+async fn docs_and_legal_pages_are_html() {
+    for (path, h1) in [
+        ("/docs", "<h1>Docs</h1>"),
+        ("/legal/privacy", "<h1>Privacy notice</h1>"),
+        ("/legal/terms", "<h1>Terms of use</h1>"),
+        ("/legal/acceptable-use", "<h1>Acceptable use policy</h1>"),
+    ] {
+        let (status, ctype, body) = get(path).await;
+        assert_eq!(status, StatusCode::OK, "{path}");
+        assert!(ctype.starts_with("text/html"), "{path}: {ctype}");
+        assert!(body.contains(h1), "{path} lacks {h1}");
+    }
+    for (from, to) in [("/privacy", "/legal/privacy"), ("/terms", "/legal/terms")] {
+        let (status, headers, _) = get_headers(from, None).await;
+        assert_eq!(status, StatusCode::PERMANENT_REDIRECT, "{from}");
+        assert_eq!(headers.get("location").unwrap(), to);
+    }
+}
+
+#[tokio::test]
+async fn api_sends_browsers_to_docs() {
+    let (status, headers, _) = get_headers("/api", Some("text/html,application/xhtml+xml")).await;
+    assert_eq!(status, StatusCode::FOUND);
+    assert_eq!(headers.get("location").unwrap(), "/docs");
+    let (status, headers, body) = get_headers("/api", Some("*/*")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(headers["content-type"]
+        .to_str()
+        .unwrap()
+        .starts_with("application/json"));
+    assert_eq!(headers.get("vary").unwrap(), "Accept");
+    assert!(body.contains("\"docs\""));
+    let (status, headers, _) = get_headers("/api?username=x", Some("text/html")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(headers["content-type"]
+        .to_str()
+        .unwrap()
+        .starts_with("image/svg+xml"));
+}
+
+#[tokio::test]
+async fn docs_lists_every_indexed_endpoint() {
+    let (_, _, index) = get("/api").await;
+    let v: serde_json::Value = serde_json::from_str(&index).unwrap();
+    let (_, _, docs) = get("/docs").await;
+    for e in v["endpoints"].as_array().unwrap() {
+        let e = e.as_str().unwrap().replace('&', "&amp;");
+        assert!(docs.contains(&e), "docs lacks {e}");
+    }
+}
+
+#[tokio::test]
+async fn docs_examples_render() {
+    let (_, _, docs) = get("/docs").await;
+    let mut checked = 0;
+    for part in docs.split("src=\"/").skip(1) {
+        let src = format!("/{}", &part[..part.find('"').unwrap()]);
+        let src = src.replace("&amp;", "&");
+        let (status, ctype, _) = get(&src).await;
+        assert_eq!(status, StatusCode::OK, "{src}");
+        assert!(ctype.starts_with("image/svg+xml"), "{src}: {ctype}");
+        checked += 1;
+    }
+    assert!(checked >= 15, "only {checked} examples");
+}
+
+#[tokio::test]
+async fn studio_copies_edge_cacheable_svg_urls() {
+    let (_, _, body) = get("/").await;
+    assert!(body.contains("/api/v1/mark/hero.svg?"));
+    assert!(body.contains("\"/badge/\"+path+\".svg\""));
+    assert!(body.contains("/streak.svg?"));
+}
+
+#[tokio::test]
+async fn stats_dialect_and_native_card_agree() {
+    let q = "username=ada-dev&show_icons=true&theme=dark&hide_border=true";
+    let (_, _, a) = get(&format!("/api?{q}")).await;
+    let (_, _, b) = get(&format!("/api/v1/card/stats?{q}")).await;
+    assert_eq!(a, b);
+}

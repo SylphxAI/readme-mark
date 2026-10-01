@@ -118,7 +118,7 @@ fn without_timeline(style: &CardStyle, title: &str, total: u64) -> String {
     let body = format!(
         "<text x=\"{cx}\" y=\"190\" text-anchor=\"middle\" fill=\"{}\" font-size=\"44\" font-weight=\"700\">★ {}</text>\
          <text x=\"{cx}\" y=\"226\" text-anchor=\"middle\" fill=\"{}\" fill-opacity=\"0.7\" font-size=\"13\">\
-         GitHub shares star dates for this repository with its owners only.</text>",
+         Stars on GitHub</text>",
         p.icon,
         card_number(total),
         p.text,

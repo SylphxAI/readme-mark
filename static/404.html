@@ -24,6 +24,12 @@
   a.btn { display:inline-flex; align-items:center; height:40px; padding:0 16px; border-radius:10px; font-weight:560; font-size:.875rem; text-decoration:none; border:1px solid var(--line); color:var(--fg); background:var(--panel); }
   a.btn.primary { background:var(--fg); border-color:var(--fg); color:var(--bg); }
   a.btn:hover { opacity:.88; }
+  .site-footer { padding:40px 0 48px; font-size:.8125rem; color:var(--muted); border-top:1px solid var(--line); margin-top:48px; display:grid; gap:10px; text-align:left; }
+  .site-footer p { margin:0; max-width:900px; }
+  .site-footer a { color:var(--muted); }
+  .footer-links { display:flex; flex-wrap:wrap; gap:6px 18px; margin-bottom:4px; }
+  .footer-links a { text-decoration:none; font-weight:560; }
+  .footer-links a:hover { color:var(--fg); text-decoration:underline; }
   :focus-visible { outline:2px solid #7C83FF; outline-offset:2px; }
 </style>
 </head>
@@ -41,9 +47,10 @@
     <p>Images live at URLs like <code>/badge/…</code> and <code>/api/v1/mark/hero?…</code>. The studio builds them for you.</p>
     <div class="actions">
       <a class="btn primary" href="/">Open the studio</a>
-      <a class="btn" href="https://github.com/SylphxAI/readme-mark#readme">Read the docs</a>
+      <a class="btn" href="/docs">Read the docs</a>
     </div>
   </div>
 </main>
+<div style="max-width:1280px;margin:0 auto;padding:0 20px;width:100%">{{FOOTER}}</div>
 </body>
 </html>

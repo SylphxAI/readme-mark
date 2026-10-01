@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Mark docs: every README image URL</title>
+<meta name="description" content="Every Mark endpoint and parameter with live examples: banners, shields-compatible badges, typing text, tech icons, GitHub stats cards and live badges. Free, no token." />
+<link rel="canonical" href="https://mark.sylphx.com/docs" />
+<meta property="og:title" content="Mark docs: every README image URL" />
+<meta property="og:description" content="Every Mark endpoint and parameter with live examples: banners, shields-compatible badges, typing text, tech icons, GitHub stats cards and live badges. Free, no token." />
+<meta property="og:url" content="https://mark.sylphx.com/docs" />
+<meta property="og:image" content="https://mark.sylphx.com/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="stylesheet" href="/site.css" />
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="/" aria-label="Mark home"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="currentColor"/><path d="M9 22V10.5l7 6.5 7-6.5V22" fill="none" stroke="var(--bg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Mark</a>
+    <nav class="toplinks"><a href="/">Studio</a><a href="/docs">Docs</a><a href="https://github.com/SylphxAI/readme-mark">GitHub</a></nav>
+  </header>
+  <main class="doc">
+<h1>Docs</h1>
+<p>Every Mark image is a URL. Put it in an <code>&lt;img&gt;</code> or Markdown image and it renders, with no install, no account and no token. Build one visually in the <a href="/">studio</a>, or use the reference below.</p>
+<nav class="toc" aria-label="On this page"><a href="#quick-start">Quick start</a><a href="#banner">Banner</a><a href="#badge">Badge</a><a href="#score">Score</a><a href="#typing">Typing text</a><a href="#icons">Tech icons</a><a href="#github-cards">GitHub cards</a><a href="#live-badges">Live badges</a><a href="#star-history">Star history</a><a href="#profile">Profile card and deploy badge</a><a href="#switch">Switch by changing the host</a><a href="#caching">Speed and reliability</a><a href="#machine">For tools and agents</a><a href="#fair-use">Fair use</a></nav>
+<section id="quick-start">
+<h2>Quick start</h2>
+<ol>
+<li>Pick a URL below or build one in the studio.</li>
+<li>Paste it into your README as <code>![](URL)</code>.</li>
+<li>Commit. GitHub renders it.</li>
+</ol>
+<div class="example"><img src="/api/v1/mark/hero.svg?type=aurora&amp;theme=dark&amp;text=Hello%2C%20README&amp;desc=One%20URL%2C%20one%20image&amp;animation=none" alt="Aurora banner reading Hello, README" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/api/v1/mark/hero.svg?type=aurora&amp;theme=dark&amp;text=Hello%2C%20README&amp;desc=One%20URL%2C%20one%20image&amp;animation=none)</code></pre>
+</section>
+<section id="banner">
+<h2>Banner: <code>/api/v1/mark/hero</code></h2>
+<table>
+<thead><tr><th>Param</th><th>Values</th><th>Default</th></tr></thead>
+<tbody>
+<tr><td><code>text</code>, <code>desc</code></td><td>Title and subtitle. Use <code>-nl-</code> for a new line.</td><td>—</td></tr>
+<tr><td><code>type</code></td><td>Style: <code>waving</code> <code>aurora</code> <code>mesh</code> <code>spotlight</code> <code>grid</code> <code>minimal</code> <code>terminal</code> <code>transparent</code></td><td><code>waving</code></td></tr>
+<tr><td><code>theme</code></td><td><code>dark</code> <code>light</code> <code>ocean</code> <code>sunset</code> <code>forest</code> <code>grape</code> <code>mono</code> <code>paper</code></td><td><code>dark</code></td></tr>
+<tr><td><code>color</code></td><td>One colour, or gradient stops like <code>0:0F172A,50:5B8CFF,100:FF8A3D</code> (used when no theme is set; a dark first stop becomes the background). <code>gradient</code> picks a theme from the text.</td><td>—</td></tr>
+<tr><td><code>layout</code></td><td><code>default</code> (centered) <code>left</code></td><td><code>default</code></td></tr>
+<tr><td><code>animation</code></td><td><code>ambient</code> (the light drifts) <code>fade</code> <code>rise</code> <code>type</code> (play once) <code>none</code></td><td><code>ambient</code></td></tr>
+<tr><td><code>font</code></td><td><code>sans</code> <code>mono</code></td><td><code>sans</code></td></tr>
+<tr><td><code>width</code>, <code>height</code></td><td>Pixels, up to 1600 × 900. Type scales with the canvas (1280×640 makes a social preview).</td><td><code>880</code>, <code>220</code></td></tr>
+</tbody>
+</table>
+<p><code>transparent</code> draws text only, in GitHub's text colours for the viewer's light or dark scheme. Older names (<code>plasma</code>, <code>constellation</code>, <code>tokyonight</code>, <code>glitch</code>, <code>plate</code>, …) still render: each maps to the closest style, theme, motion or layout above.</p>
+<div class="example"><img src="/api/v1/mark/hero.svg?type=aurora&amp;theme=dark&amp;text=Hello%2C%20README&amp;desc=One%20URL%2C%20one%20image&amp;animation=none" alt="Aurora banner reading Hello, README" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/api/v1/mark/hero.svg?type=aurora&amp;theme=dark&amp;text=Hello%2C%20README&amp;desc=One%20URL%2C%20one%20image&amp;animation=none)</code></pre>
+</section>
+<section id="badge">
+<h2>Badge: <code>/badge/{label}-{message}-{color}</code> and <code>/static/v1</code></h2>
+<p>Uses shields.io static-badge syntax: <code>--</code> is a dash, <code>__</code> is an underscore, <code>_</code> is a space, and <code>{message}-{color}</code> alone drops the label.</p>
+<table>
+<thead><tr><th>Param</th><th>Values</th><th>Default</th></tr></thead>
+<tbody>
+<tr><td><code>text</code>, <code>desc</code></td><td>Title and subtitle. Use <code>-nl-</code> for a new line.</td><td>—</td></tr>
+<tr><td><code>type</code></td><td>Style: <code>waving</code> <code>aurora</code> <code>mesh</code> <code>spotlight</code> <code>grid</code> <code>minimal</code> <code>terminal</code> <code>transparent</code></td><td><code>waving</code></td></tr>
+<tr><td><code>theme</code></td><td><code>dark</code> <code>light</code> <code>ocean</code> <code>sunset</code> <code>forest</code> <code>grape</code> <code>mono</code> <code>paper</code></td><td><code>dark</code></td></tr>
+<tr><td><code>color</code></td><td>One colour, or gradient stops like <code>0:0F172A,50:5B8CFF,100:FF8A3D</code> (used when no theme is set; a dark first stop becomes the background). <code>gradient</code> picks a theme from the text.</td><td>—</td></tr>
+<tr><td><code>layout</code></td><td><code>default</code> (centered) <code>left</code></td><td><code>default</code></td></tr>
+<tr><td><code>animation</code></td><td><code>ambient</code> (the light drifts) <code>fade</code> <code>rise</code> <code>type</code> (play once) <code>none</code></td><td><code>ambient</code></td></tr>
+<tr><td><code>font</code></td><td><code>sans</code> <code>mono</code></td><td><code>sans</code></td></tr>
+<tr><td><code>width</code>, <code>height</code></td><td>Pixels, up to 1600 × 900. Type scales with the canvas (1280×640 makes a social preview).</td><td><code>880</code>, <code>220</code></td></tr>
+</tbody>
+</table>
+<div class="example"><img src="/badge/build-passing-brightgreen.svg" alt="Build passing badge" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/badge/build-passing-brightgreen.svg)</code></pre>
+<div class="example"><img src="/badge/made_with-Rust-dea584.svg?style=for-the-badge&amp;logo=rust" alt="Made with Rust badge" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/badge/made_with-Rust-dea584.svg?style=for-the-badge&amp;logo=rust)</code></pre>
+</section>
+<section id="score">
+<h2>Score: <code>/api/v1/mark/score</code></h2>
+<p><code>label</code>, <code>value</code>, <code>max</code> (default 100), <code>style</code>, <code>logo</code>, <code>color</code> (overrides the automatic grade), <code>theme</code>.</p>
+<p>A progress ring and automatic color grading (red → bright green) from <code>value</code> and <code>max</code>.</p>
+<div class="example"><img src="/api/v1/mark/score.svg?label=coverage&amp;value=74" alt="Coverage score 74" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/api/v1/mark/score.svg?label=coverage&amp;value=74)</code></pre>
+</section>
+<section id="typing">
+<h2>Typing text: <code>/typing</code></h2>
+<p>The same parameters as readme-typing-svg: <code>lines</code> (separated by <code>;</code>), <code>font</code>, <code>weight</code>, <code>size</code>, <code>color</code>, <code>background</code>, <code>center</code>, <code>vCenter</code>, <code>multiline</code>, <code>width</code>, <code>height</code>, <code>duration</code>, <code>pause</code>, <code>repeat</code>, <code>random</code>, <code>letterSpacing</code>, <code>separator</code>, plus <code>caret</code> (default <code>true</code>; <code>caret=false</code> drops the blinking caret). Under <code>prefers-reduced-motion</code> the image shows the fully typed first line instead of moving.</p>
+<div class="example"><img src="/typing.svg?lines=Hi%20there;Welcome%20to%20my%20README&amp;center=true&amp;width=520&amp;height=50" alt="Typing text" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/typing.svg?lines=Hi%20there;Welcome%20to%20my%20README&amp;center=true&amp;width=520&amp;height=50)</code></pre>
+</section>
+<section id="icons">
+<h2>Tech icons: <code>/icons</code></h2>
+<p><code>i</code> (or <code>icons</code>): comma-separated skill-icons ids or Simple Icons slugs. <code>theme</code> is <code>dark</code> or <code>light</code>. <code>perline</code> is 1–50 (default 15). The native row is <code>/api/v1/mark/strip?icons=…</code>.</p>
+<p>3,400+ Simple Icons brands and every skill-icons id.</p>
+<div class="example"><img src="/icons.svg?i=rust,ts,react,docker,postgres" alt="Tech icons: Rust, TypeScript, React, Docker, Postgres" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/icons.svg?i=rust,ts,react,docker,postgres)</code></pre>
+</section>
+<section id="github-cards">
+<h2>GitHub cards</h2>
+<p>github-readme-stats parameters: <code>username</code>, <code>theme</code>, <code>show_icons</code>, <code>hide</code>, <code>hide_title</code>, <code>hide_rank</code>, <code>hide_border</code>, <code>border_radius</code>, <code>title_color</code>, <code>text_color</code>, <code>icon_color</code>, <code>bg_color</code>, <code>border_color</code>, <code>custom_title</code>, <code>card_width</code>, <code>layout</code> (<code>normal</code> <code>compact</code> <code>donut</code> <code>donut-vertical</code> <code>pie</code>), <code>langs_count</code>, <code>exclude_repo</code>. The native routes are <code>/api/v1/card/{stats|langs|streak|repo|stars}</code>. Trophies (<code>/trophy</code>, or <code>/?username=</code>) take github-profile-trophy's <code>theme</code>, <code>column</code>, <code>row</code>, <code>margin-w</code>, <code>margin-h</code>, <code>no-bg</code>, <code>no-frame</code>, <code>title</code> and <code>rank</code>.</p>
+<p>Live cards are cached on the server (about 4 hours) and at the edge. They are served stale while they refresh, and stale when GitHub is unavailable.</p>
+<div class="example"><img src="/api/v1/card/stats.svg?username=torvalds&amp;show_icons=true&amp;theme=tokyonight" alt="GitHub stats card" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/api/v1/card/stats.svg?username=torvalds&amp;show_icons=true&amp;theme=tokyonight)</code></pre>
+<div class="example"><img src="/api/top-langs.svg?username=torvalds&amp;layout=compact&amp;theme=tokyonight" alt="Top languages card" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/api/top-langs.svg?username=torvalds&amp;layout=compact&amp;theme=tokyonight)</code></pre>
+<div class="example"><img src="/streak.svg?user=torvalds&amp;theme=dark" alt="Streak card" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/streak.svg?user=torvalds&amp;theme=dark)</code></pre>
+<div class="example"><img src="/api/pin.svg?username=torvalds&amp;repo=linux" alt="Pinned repository card" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/api/pin.svg?username=torvalds&amp;repo=linux)</code></pre>
+<div class="example"><img src="/trophy.svg?username=torvalds&amp;theme=tokyonight" alt="Trophy card" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/trophy.svg?username=torvalds&amp;theme=tokyonight)</code></pre>
+</section>
+<section id="live-badges">
+<h2>Live badges</h2>
+<table>
+<thead><tr><th>Source</th><th>Paths</th></tr></thead>
+<tbody>
+<tr><td>GitHub</td><td><code>/github/{stars,forks,license,last-commit}/{owner}/{repo}</code>, <code>/github/v/release/{owner}/{repo}</code>, <code>/github/actions/workflow/status/{owner}/{repo}/{file}</code> (<code>?branch=</code>, <code>?event=</code>)</td></tr>
+<tr><td>npm</td><td><code>/npm/{v,dm,dw,dt,l}/{package}</code> (scoped too)</td></tr>
+<tr><td>pub.dev</td><td><code>/pub/{v,likes,points,dm}/{package}</code></td></tr>
+<tr><td>Packagist</td><td><code>/packagist/{v,dm,dd,dt}/{vendor}/{package}</code></td></tr>
+<tr><td>Bundlephobia</td><td><code>/bundlephobia/{min,minzip}/{package}</code></td></tr>
+<tr><td>Chrome Web Store</td><td><code>/chrome-web-store/{v,users,rating,stars,rating-count}/{id}</code></td></tr>
+</tbody>
+</table>
+<div class="example"><img src="/github/stars/SylphxAI/readme-mark.svg" alt="GitHub stars badge" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/github/stars/SylphxAI/readme-mark.svg)</code></pre>
+<div class="example"><img src="/npm/v/react.svg" alt="npm version badge" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/npm/v/react.svg)</code></pre>
+<div class="example"><img src="/npm/dw/react.svg" alt="npm weekly downloads badge" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/npm/dw/react.svg)</code></pre>
+</section>
+<section id="star-history">
+<h2>Star history: <code>/svg</code></h2>
+<pre><code>![](https://mark.sylphx.com/svg?repos=owner/repo&amp;theme=dark)</code></pre>
+<p>A star-history.com URL works with only the host changed. GitHub shares star dates only with the people who can manage a repository, so the chart draws a curve for repositories Mark's server can read; for any other repository it shows today's total.</p>
+</section>
+<section id="profile">
+<h2>Profile card and deploy badge</h2>
+<p><code>/api/v1/mark/profile?text=Name&amp;desc=Tagline</code>, with <code>theme</code>, <code>color</code>, <code>type</code> (an art background), <code>width</code> and <code>height</code>.</p>
+<p><code>/api/v1/mark/deploy?service=name</code> renders a "deployed on Sylphx" badge.</p>
+<div class="example"><img src="/api/v1/mark/profile.svg?text=Ada%20Lovelace&amp;desc=Analytical%20engines%20and%20poetry&amp;theme=grape" alt="Profile card for Ada Lovelace" loading="lazy" /></div>
+<pre><code>![](https://mark.sylphx.com/api/v1/mark/profile.svg?text=Ada%20Lovelace&amp;desc=Analytical%20engines%20and%20poetry&amp;theme=grape)</code></pre>
+</section>
+<section id="switch">
+<h2>Switch by changing the host</h2>
+<p>Mark reads the URL formats you already use. Keep the path and query, change the host:</p>
+<table>
+<thead><tr><th>You have</th><th>Change it to</th></tr></thead>
+<tbody>
+<tr><td><code>img.shields.io/badge/build-passing-brightgreen</code></td><td><code>mark.sylphx.com/badge/build-passing-brightgreen</code></td></tr>
+<tr><td><code>img.shields.io/github/stars/owner/repo</code></td><td><code>mark.sylphx.com/github/stars/owner/repo</code></td></tr>
+<tr><td><code>img.shields.io/npm/v/package</code></td><td><code>mark.sylphx.com/npm/v/package</code></td></tr>
+<tr><td><code>capsule-render.vercel.app/api?type=waving&amp;text=Hi</code></td><td><code>mark.sylphx.com/api?type=waving&amp;text=Hi</code></td></tr>
+<tr><td><code>skillicons.dev/icons?i=rust,ts</code></td><td><code>mark.sylphx.com/icons?i=rust,ts</code></td></tr>
+<tr><td><code>readme-typing-svg.demolab.com?lines=Hello;World</code></td><td><code>mark.sylphx.com/?lines=Hello;World</code></td></tr>
+<tr><td><code>github-readme-stats.vercel.app/api?username=you</code></td><td><code>mark.sylphx.com/api?username=you</code></td></tr>
+<tr><td><code>github-readme-stats.vercel.app/api/top-langs?username=you</code></td><td><code>mark.sylphx.com/api/top-langs?username=you</code></td></tr>
+<tr><td><code>github-readme-stats.vercel.app/api/pin?username=you&amp;repo=r</code></td><td><code>mark.sylphx.com/api/pin?username=you&amp;repo=r</code></td></tr>
+<tr><td><code>streak-stats.demolab.com?user=you</code></td><td><code>mark.sylphx.com/?user=you</code></td></tr>
+<tr><td><code>github-profile-trophy.vercel.app/?username=you</code></td><td><code>mark.sylphx.com/?username=you</code></td></tr>
+<tr><td><code>api.star-history.com/svg?repos=owner/repo</code></td><td><code>mark.sylphx.com/svg?repos=owner/repo</code></td></tr>
+</tbody>
+</table>
+</section>
+<section id="caching">
+<h2>Speed and reliability</h2>
+<p>Append <code>.svg</code> to any image path and it is served from the edge cache. Static images are immutable and cache for a year; live cards refresh about every four hours, are served stale while they refresh, and stay up when the upstream service is down. Every response has a strong <code>ETag</code> and answers <code>If-None-Match</code> with <code>304</code>. Unknown parameters fall back to defaults, so a Mark URL never shows a broken image.</p>
+</section>
+<section id="machine">
+<h2>For tools and agents</h2>
+<p><code>GET /api</code> (with no image query) returns the JSON endpoint index; <code>GET /api/v1/catalog</code> returns every form, style, theme, icon id and limit; <code>GET /health</code> returns the deployed revision.</p>
+<ul>
+<li><code>/api/v1/mark</code></li>
+<li><code>/api/v1/mark/{form}</code></li>
+<li><code>/badge/{label}-{message}-{color}</code></li>
+<li><code>/icons?i={ids}</code></li>
+<li><code>/typing?lines={a};{b}</code></li>
+<li><code>/?lines={a};{b}</code></li>
+<li><code>/api?type={art}&amp;text={text}</code></li>
+<li><code>/static/v1</code></li>
+<li><code>/api/v1/card/{stats|langs|streak|repo|stars}?username=</code></li>
+<li><code>/api?username=</code></li>
+<li><code>/api/top-langs?username=</code></li>
+<li><code>/api/pin?username=&amp;repo=</code></li>
+<li><code>/streak?user=</code></li>
+<li><code>/trophy?username=</code></li>
+<li><code>/github/{stars|forks|license|last-commit}/{owner}/{repo}</code></li>
+<li><code>/github/v/release/{owner}/{repo}</code></li>
+<li><code>/npm/{v|dm|dw|dt|l}/{package}</code></li>
+<li><code>/github/actions/workflow/status/{owner}/{repo}/{file}</code></li>
+<li><code>/pub/{v|likes|points|dm}/{package}</code></li>
+<li><code>/packagist/{v|dm|dd|dt}/{vendor}/{package}</code></li>
+<li><code>/bundlephobia/{min|minzip}/{package}</code></li>
+<li><code>/chrome-web-store/{v|users|rating|stars|rating-count}/{id}</code></li>
+<li><code>/svg?repos={owner}/{repo}</code></li>
+<li><code>/api/v1/catalog</code></li>
+<li><code>/health</code></li>
+</ul>
+</section>
+<section id="fair-use">
+<h2>Fair use</h2>
+<p>Free for every README and site. Automated bulk traffic is not; see the <a href="/legal/acceptable-use">acceptable use policy</a>.</p>
+</section>
+  </main>
+  {{FOOTER}}
+</div>
+</body>
+</html>
