@@ -22,6 +22,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Render latency (release, in-process)
+        shell: bash
         run: |
+          output=$(mktemp)
+          trap 'rm -f "$output"' EXIT
+          # Keep diagnostics visible, but publish rows only after cargo succeeds.
           cargo test --release --locked --test render_bench -- --ignored --nocapture --test-threads=1 \
-            | grep '^|' | tee -a "$GITHUB_STEP_SUMMARY"
+            | tee "$output"
+          # No table matches are harmless; grep errors and summary write errors are not.
+          { grep '^|' "$output" || test "$?" -eq 1; } | tee -a "$GITHUB_STEP_SUMMARY"
