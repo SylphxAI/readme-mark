@@ -1,0 +1,28 @@
+{
+  "slug": "mark",
+  "kind": "open-source",
+  "name": {
+    "en": "Mark",
+    "zh-Hant": "Mark"
+  },
+  "tagline": {
+    "en": "Make README banners, badges, typing text, tech icons and GitHub stats cards from one URL, free with no signup.",
+    "zh-Hant": "由一個網址生成 README 橫幅、徽章、打字動畫、技術圖示與 GitHub 統計卡，免費，毋須註冊。"
+  },
+  "category": {
+    "en": "Developer tools",
+    "zh-Hant": "開發者工具"
+  },
+  "url": "https://mark.sylphx.com",
+  "status": "available",
+  "image": {
+    "src": "card.webp",
+    "alt": {
+      "en": "Mark home page: beautiful README images from one URL",
+      "zh-Hant": "Mark 首頁：一個網址生成精美 README 圖片"
+    }
+  },
+  "repo": "SylphxAI/readme-mark",
+  "licence": "MIT",
+  "docs": "https://mark.sylphx.com/api"
+}
