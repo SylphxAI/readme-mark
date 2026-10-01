@@ -4,29 +4,46 @@
 
 CI uses the shared brand action pinned to `a6c81b4bcda66bf624f0a68e25e63b3c0ed043eb`.
 The masters, tokens, pixel grids and provenance remain in this repository;
-existing assets are unchanged by moving the generator. To regenerate locally,
-prepare the script from the same pin (run from the repository root):
+existing assets are unchanged by moving the generator. From the repository
+root, run this self-contained recipe. Select `OPERATION=write` to regenerate
+and verify, `OPERATION=check` to verify only, or `OPERATION=resnap` to
+intentionally redraw the small favicon grids, regenerate and verify.
 
 ```sh
-BRAND_SCRIPT="$(mktemp)"
-curl --fail --location --output "$BRAND_SCRIPT" \
-  "https://raw.githubusercontent.com/SylphxAI/.github/a6c81b4bcda66bf624f0a68e25e63b3c0ed043eb/.github/actions/brand/build.py"
-python3 -m pip install pillow numpy resvg-py
-python3 "$BRAND_SCRIPT" --brand-dir "$PWD/brand" --root "$PWD" --render-fit intrinsic
-python3 "$BRAND_SCRIPT" --brand-dir "$PWD/brand" --root "$PWD" --render-fit intrinsic --check
-rm "$BRAND_SCRIPT"
+(
+  set -eu
+  OPERATION=write # Choose write, check or resnap before running.
+  BRAND_SCRIPT="$(mktemp)"
+  trap 'rm -f "$BRAND_SCRIPT"' EXIT
+  curl --fail --location --output "$BRAND_SCRIPT" \
+    "https://raw.githubusercontent.com/SylphxAI/.github/a6c81b4bcda66bf624f0a68e25e63b3c0ed043eb/.github/actions/brand/build.py"
+  case "$OPERATION" in
+    check) set -- --check ;;
+    write) set -- ;;
+    resnap) set -- --resnap ;;
+    *) echo "Unknown brand operation: $OPERATION" >&2; exit 1 ;;
+  esac
+  if [ "$OPERATION" != check ]; then
+    python3 -m pip install pillow numpy resvg-py
+  fi
+  python3 "$BRAND_SCRIPT" --brand-dir "$PWD/brand" --root "$PWD" --render-fit intrinsic "$@"
+  if [ "$OPERATION" != check ]; then
+    python3 "$BRAND_SCRIPT" --brand-dir "$PWD/brand" --root "$PWD" --render-fit intrinsic --check
+  fi
+)
 ```
 
-Add `--resnap` only when intentionally redrawing the small favicon grids.
-Check mode needs only Python 3 and does not regenerate files. The commands below
-assume `BRAND_SCRIPT` points to this pinned script. Generated-file comments that
-name `brand/build.py` describe the historical generator; they are preserved to
-keep the asset bytes and hashes unchanged.
+Check mode needs only Python 3 and does not regenerate files. Each invocation
+prepares and cleans up its own script; later references select an operation in
+this recipe, rather than reusing its temporary path. A download, dependency,
+regeneration or verification failure stops the recipe with a nonzero status.
+Generated-file comments that name `brand/build.py` describe the historical
+generator; they are preserved to keep the asset bytes and hashes unchanged.
 
 `brand/` is the source of truth for Mark's mark, icons, colours and type:
 surfaces copy from it and never redraw it, and every generated file is
-rebuilt from the masters with `python3 "$BRAND_SCRIPT" --brand-dir "$PWD/brand" --root "$PWD" --render-fit intrinsic` (needs pillow,
-resvg-py and numpy; `python3 "$BRAND_SCRIPT" --brand-dir "$PWD/brand" --root "$PWD" --render-fit intrinsic --check` verifies the hashes and
+rebuilt from the masters with the [shared recipe](#shared-generator) with `OPERATION=write` (needs pillow,
+resvg-py and numpy; the [shared recipe](#shared-generator) with `OPERATION=check` verifies the hashes and
 the surface copies with the standard library alone).
 
 ## Name
@@ -104,7 +121,7 @@ app-icon master at 8×, snaps every sample to the nearest colour in
 
 - `favicon/grid-16.txt` and `favicon/grid-32.txt` are those grids as text,
   with the palette in the header. Hand edits are kept: [shared generator](https://github.com/SylphxAI/.github/tree/a6c81b4bcda66bf624f0a68e25e63b3c0ed043eb/.github/actions/brand) redraws from
-  the grid file, and only `python3 "$BRAND_SCRIPT" --brand-dir "$PWD/brand" --root "$PWD" --render-fit intrinsic --resnap` throws them away.
+  the grid file, and only the [shared recipe](#shared-generator) with `OPERATION=resnap` throws them away.
 - `favicon/favicon.svg` is the 32 px grid as rectangles; the studio serves it
   at `/favicon.svg`.
 - 48 px and up use the vector master.
@@ -153,7 +170,7 @@ Don't:
 | `static/favicon.svg` (`/favicon.svg`, linked from `static/index.html` and `static/404.html`) | `favicon/favicon.svg` |
 | `static/og.png` (`/og.png`, the `og:image` and `twitter:image` in `static/index.html`) | `og/mark-og.png` |
 
-Both are copies; `python3 "$BRAND_SCRIPT" --brand-dir "$PWD/brand" --root "$PWD" --render-fit intrinsic` writes them and `--check` fails if
+Both are copies; the [shared recipe](#shared-generator) with `OPERATION=write` writes them and `--check` fails if
 they drift.
 
 Surfaces still to move:
@@ -182,8 +199,7 @@ Surfaces still to move:
 | [shared generator](https://github.com/SylphxAI/.github/tree/a6c81b4bcda66bf624f0a68e25e63b3c0ed043eb/.github/actions/brand) | pinned shared implementation; not copied into this repository |
 | `favicon/*`, `app-icon/*`, `tokens.css` | generated by [shared generator](https://github.com/SylphxAI/.github/tree/a6c81b4bcda66bf624f0a68e25e63b3c0ed043eb/.github/actions/brand) |
 
-Every file's SHA-256 is in `provenance.json`, and `python3 "$BRAND_SCRIPT" --brand-dir "$PWD/brand" --root "$PWD" --render-fit intrinsic
---check` verifies the hashes and that each surface is a byte copy of its
+Every file's SHA-256 is in `provenance.json`, and the [shared recipe](#shared-generator) with `OPERATION=check` verifies the hashes and that each surface is a byte copy of its
 brand file.
 
 ## Trademark
