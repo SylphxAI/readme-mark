@@ -64,10 +64,11 @@ pub(crate) async fn api(
         let svg = capsule::render(&pairs, query, credit);
         return svg_response_conditional(&svg, if_none_match(&headers));
     }
-    let wants_html = headers
-        .get(axum::http::header::ACCEPT)
-        .and_then(|v| v.to_str().ok())
-        .is_some_and(|v| v.contains("text/html"));
+    let wants_html = prefers_html(
+        headers
+            .get(axum::http::header::ACCEPT)
+            .and_then(|v| v.to_str().ok()),
+    );
     if wants_html {
         return (
             StatusCode::FOUND,
@@ -84,4 +85,50 @@ pub(crate) async fn api(
         axum::http::HeaderValue::from_static("Accept"),
     );
     res
+}
+
+/// Whether an `Accept` header asks for the HTML docs instead of the JSON
+/// index: `text/html` is accepted and `application/json` is not. JSON wins
+/// whenever it is requested (`application/json, text/html;q=0.1`).
+fn prefers_html(accept: Option<&str>) -> bool {
+    let (mut html, mut json) = (false, false);
+    for part in accept.unwrap_or("").split(',') {
+        let mut fields = part.split(';');
+        let kind = fields.next().unwrap_or("").trim().to_ascii_lowercase();
+        let rejected = fields.any(|f| {
+            f.trim()
+                .strip_prefix("q=")
+                .and_then(|q| q.trim().parse::<f32>().ok())
+                .is_some_and(|q| q <= 0.0)
+        });
+        if rejected {
+            continue;
+        }
+        match kind.as_str() {
+            "text/html" => html = true,
+            "application/json" => json = true,
+            _ => {}
+        }
+    }
+    html && !json
+}
+
+#[cfg(test)]
+mod tests {
+    use super::prefers_html;
+
+    #[test]
+    fn json_wins_whenever_it_is_requested() {
+        assert!(prefers_html(Some("text/html,application/xhtml+xml")));
+        assert!(prefers_html(Some("text/html")));
+        assert!(!prefers_html(Some("application/json")));
+        assert!(!prefers_html(Some("application/json, text/html;q=0.1")));
+        assert!(!prefers_html(Some("text/html, application/json")));
+        assert!(!prefers_html(Some("*/*")));
+        assert!(!prefers_html(None));
+        assert!(
+            prefers_html(Some("text/html, application/json;q=0")),
+            "q=0 means not acceptable"
+        );
+    }
 }

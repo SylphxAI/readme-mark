@@ -108,7 +108,7 @@ def studio_forms(path: Path) -> set[str]:
 
 def form_vocabulary(workspace: Path) -> list[str]:
     server = server_forms(workspace / "src" / "capabilities" / "mark" / "domain" / "spec.rs")
-    studio = studio_forms(workspace / "static" / "index.html")
+    studio = studio_forms(workspace / "templates" / "index.html")
     findings: list[str] = []
     if server != studio:
         findings.append(

@@ -94,7 +94,7 @@
       "sha256": "0fc09c59b45b8df92f8f37c329f49a72426b269f77ce61c2cb751c5be40798a9"
     },
     "tokens.json": {
-      "source": "read from the studio theme variables in static/index.html and from the logo master when the brand home landed (2026-09-28)",
+      "source": "read from the studio theme variables in templates/index.html and from the logo master when the brand home landed (2026-09-28)",
       "sha256": "6e72eea9fe5c355fa5292a35eacff75169b3500ce96a601ba10f0120973dbaf0"
     }
   },

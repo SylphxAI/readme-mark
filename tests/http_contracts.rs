@@ -772,3 +772,83 @@ async fn stats_dialect_and_native_card_agree() {
     let (_, _, b) = get(&format!("/api/v1/card/stats?{q}")).await;
     assert_eq!(a, b);
 }
+
+async fn get_accept(path: &str, accept: &str) -> (StatusCode, axum::http::HeaderMap, String) {
+    let res = app(state())
+        .oneshot(
+            Request::builder()
+                .uri(path)
+                .header("accept", accept)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let (status, headers) = (res.status(), res.headers().clone());
+    let body = res.into_body().collect().await.unwrap().to_bytes();
+    (status, headers, String::from_utf8_lossy(&body).into_owned())
+}
+
+#[tokio::test]
+async fn api_prefers_json_whenever_it_is_requested() {
+    for accept in [
+        "application/json",
+        "application/json, text/html;q=0.1",
+        "text/html;q=0.1, application/json",
+        "*/*",
+    ] {
+        let (status, headers, body) = get_accept("/api", accept).await;
+        assert_eq!(status, StatusCode::OK, "{accept}");
+        assert!(body.trim_start().starts_with('{'), "{accept}: {body}");
+        assert_eq!(headers["vary"], "Accept");
+    }
+    let (status, headers, _) = get_accept("/api", "text/html,application/xhtml+xml").await;
+    assert_eq!(status, StatusCode::FOUND);
+    assert_eq!(headers["location"], "/docs");
+}
+
+#[tokio::test]
+async fn api_images_are_cacheable_but_the_index_and_redirect_are_not() {
+    for path in [
+        "/api?username=ada-dev",
+        "/api?type=wave&text=Hi",
+        "/api?type=wave&text=Hi&x=1",
+    ] {
+        let (status, headers, body) = get_accept(path, "image/svg+xml,*/*").await;
+        assert_eq!(status, StatusCode::OK, "{path}");
+        assert!(body.contains("<svg"), "{path}");
+        let cc = headers["cache-control"].to_str().unwrap();
+        assert!(
+            cc.contains("max-age") && cc.contains("s-maxage"),
+            "{path}: {cc}"
+        );
+        assert!(headers.contains_key("cdn-cache-control"), "{path}");
+    }
+    let (_, index, _) = get_accept("/api", "application/json").await;
+    assert!(!index.contains_key("cache-control"));
+    let (_, redirect, _) = get_accept("/api", "text/html").await;
+    assert!(!redirect.contains_key("cache-control"));
+}
+
+#[tokio::test]
+async fn raw_page_templates_are_never_served_as_files() {
+    for path in [
+        "/docs.html",
+        "/index.html",
+        "/404.html",
+        "/legal-terms.html",
+        "/legal-privacy.html",
+        "/legal-acceptable-use.html",
+        "/templates/docs.html",
+    ] {
+        let (status, _, body) = get(path).await;
+        assert!(
+            !body.contains("{{FOOTER}}") && !body.contains("{{BASE}}"),
+            "{path} leaked template text"
+        );
+        assert_eq!(status, StatusCode::NOT_FOUND, "{path}");
+    }
+    let (status, _, body) = get("/docs").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(!body.contains("{{FOOTER}}") && !body.contains("{{BASE}}"));
+}
