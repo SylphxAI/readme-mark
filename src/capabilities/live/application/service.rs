@@ -15,6 +15,7 @@ use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
 
+use super::budget::ClientBudget;
 use super::cache::{Lookup, Ttl, TtlCache};
 use super::fixtures::{fixture_now, FixtureUpstream};
 use super::github::{self, GqlActivity, GqlCore, GqlLang, GqlStars, Profile, RepoLite};
@@ -37,6 +38,7 @@ use crate::capabilities::live::domain::model::{
 pub struct LiveService {
     up: Arc<dyn Upstream>,
     clock: fn() -> i64,
+    budget: Arc<ClientBudget>,
     profiles: TtlCache<Profile>,
     repos: TtlCache<Vec<RepoLite>>,
     counts: TtlCache<u64>,
@@ -61,10 +63,11 @@ pub struct LiveService {
 }
 
 impl LiveService {
-    fn build(up: Arc<dyn Upstream>, clock: fn() -> i64) -> Self {
+    fn build(up: Arc<dyn Upstream>, clock: fn() -> i64, budget: ClientBudget) -> Self {
         Self {
             up,
             clock,
+            budget: Arc::new(budget),
             profiles: TtlCache::new("profile", 2000, Ttl::PROFILE),
             repos: TtlCache::new("repos", 1000, Ttl::PROFILE),
             counts: TtlCache::new("counts", 4000, Ttl::PROFILE),
@@ -98,17 +101,37 @@ impl LiveService {
         tracing::info!(tokens = tokens.len(), "live upstream configured");
         let up = Arc::new(HttpUpstream::new(tokens)?);
         up.keep_warm();
-        Ok(Self::build(up, unix_now))
+        Ok(Self::build(up, unix_now, ClientBudget::from_env()))
     }
 
     /// Offline fixtures and a fixed clock (anonymous path).
     pub fn for_tests() -> Self {
-        Self::build(Arc::new(FixtureUpstream { token: false }), fixture_now)
+        Self::for_tests_with_budget(u32::MAX)
+    }
+
+    /// Offline fixtures with `limit` upstream loads per client per minute.
+    pub fn for_tests_with_budget(limit: u32) -> Self {
+        let budget = ClientBudget::new(limit, Duration::from_secs(60));
+        Self::build(
+            Arc::new(FixtureUpstream { token: false }),
+            fixture_now,
+            budget,
+        )
     }
 
     /// Offline fixtures on the server-token (GraphQL) path.
     pub fn for_tests_with_token() -> Self {
-        Self::build(Arc::new(FixtureUpstream { token: true }), fixture_now)
+        let budget = ClientBudget::new(u32::MAX, Duration::from_secs(60));
+        Self::build(
+            Arc::new(FixtureUpstream { token: true }),
+            fixture_now,
+            budget,
+        )
+    }
+
+    /// Run `fut` with its upstream loads charged to `client`.
+    pub(crate) async fn scope_client<F: Future>(&self, client: &str, fut: F) -> F::Output {
+        self.budget.scope(client, fut).await
     }
 
     pub(crate) fn now_unix(&self) -> i64 {

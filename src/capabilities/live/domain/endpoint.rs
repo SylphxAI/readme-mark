@@ -50,7 +50,9 @@ impl UrlRefusal {
 
 /// Whether `ip` is a globally routable unicast address. Private, loopback,
 /// link-local, CGNAT, documentation, benchmarking, multicast and reserved
-/// ranges are refused, including their IPv4-mapped and NAT64 forms.
+/// ranges are refused, including their IPv4-mapped and NAT64 forms:
+/// 64:ff9b::/96 is judged by its embedded IPv4 address; the local-use
+/// 64:ff9b:1::/48 and the IPv4-translated ::ffff:0:0:0/96 are refused outright.
 pub(crate) fn is_public_ip(ip: IpAddr) -> bool {
     match ip {
         IpAddr::V4(v4) => public_v4(v4),
@@ -95,6 +97,8 @@ fn public_v6(ip: Ipv6Addr) -> bool {
         || (s[0] & 0xfe00) == 0xfc00 // unique local fc00::/7
         || (s[0] & 0xffc0) == 0xfe80 // link-local fe80::/10
         || (s[0] == 0x2001 && s[1] == 0x0db8) // documentation
+        || s[..3] == [0x64, 0xff9b, 1] // 64:ff9b:1::/48 local-use NAT64
+        || s[..6] == [0, 0, 0, 0, 0xffff, 0] // ::ffff:0:0:0/96 IPv4-translated (SIIT)
         || (s[0] == 0x0100 && s[1..4] == [0, 0, 0])) // discard-only
 }
 
@@ -181,6 +185,8 @@ mod tests {
             "https://example.com:443/x?y=1",
             "https://8.8.8.8/x",
             "https://[2606:4700:4700::1111]/x",
+            // 64:ff9b::/96 stays open for a public embedded IPv4 address.
+            "https://[64:ff9b::808:808]/x",
         ] {
             assert!(check_url(ok).is_ok(), "{ok}");
         }
@@ -218,6 +224,15 @@ mod tests {
             ("https://[fd00::1]/x", UrlRefusal::PrivateHost),
             ("https://[fe80::1]/x", UrlRefusal::PrivateHost),
             ("https://[64:ff9b::a00:1]/x", UrlRefusal::PrivateHost),
+            ("https://[64:ff9b::7f00:1]/x", UrlRefusal::PrivateHost),
+            ("https://[64:ff9b::a9fe:a9fe]/x", UrlRefusal::PrivateHost),
+            ("https://[64:ff9b:1::1]/x", UrlRefusal::PrivateHost),
+            (
+                "https://[64:ff9b:1:ffff::808:808]/x",
+                UrlRefusal::PrivateHost,
+            ),
+            ("https://[::ffff:0:a00:1]/x", UrlRefusal::PrivateHost),
+            ("https://[::ffff:0:808:808]/x", UrlRefusal::PrivateHost),
             ("https://example.com:8443/x", UrlRefusal::Port),
             ("https://user:pw@example.com/x", UrlRefusal::Credentials),
             ("https://user@example.com/x", UrlRefusal::Credentials),
