@@ -460,7 +460,7 @@ impl HttpUpstream {
     fn host_slot(&self, url: &str) -> Result<HostSlot<'_>, UpstreamError> {
         let host = reqwest::Url::parse(url)
             .ok()
-            .and_then(|u| u.host_str().map(str::to_ascii_lowercase))
+            .and_then(|u| u.host_str().map(|h| h.trim_end_matches('.').to_ascii_lowercase()))
             .ok_or(UpstreamError::Busy)?;
         let mut hosts = self
             .endpoint_hosts
@@ -507,7 +507,8 @@ impl HttpUpstream {
         }
         let slot = self.pick(call.resource)?;
         let endpoint = call.resource == Resource::Endpoint;
-        if call.url.starts_with("https://crates.io/") {
+        // Endpoint fetches never spend crates.io pacing slots, so they cannot starve real crate badges.
+        if !endpoint && call.url.starts_with("https://crates.io/") {
             self.crates_slot().await?;
         }
         let _host_slot = if endpoint {
@@ -623,6 +624,20 @@ mod tests {
             up.permits.try_acquire().is_ok(),
             "the shared pool still has a permit for a Core call"
         );
+    }
+
+    #[tokio::test]
+    async fn endpoint_calls_never_take_crates_pacing_slots() {
+        let up = HttpUpstream::new(Vec::new()).expect("client builds");
+        let before = *up.crates_next.lock().unwrap();
+        // The call itself fails (no network in tests); only the pacing state matters.
+        let _ = up
+            .call(Call::read(
+                Resource::Endpoint,
+                "https://crates.io/api/v1/crates/serde".into(),
+            ))
+            .await;
+        assert_eq!(*up.crates_next.lock().unwrap(), before, "endpoint left crates.io pacing untouched");
     }
 
     #[test]
