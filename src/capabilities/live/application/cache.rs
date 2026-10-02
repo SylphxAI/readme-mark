@@ -118,6 +118,14 @@ impl<V: Clone + Send + Sync + 'static> TtlCache<V> {
         }
     }
 
+    /// Whether `key` holds a fresh entry (a read that would not call upstream).
+    pub(crate) async fn is_fresh(&self, key: &str) -> bool {
+        self.inner
+            .get(key)
+            .await
+            .is_some_and(|e| e.fresh_until > Instant::now())
+    }
+
     /// Cached value for `key`, loading it with `load` when missing or stale.
     ///
     /// `load` answers `Ok(Some(v))` (found), `Ok(None)` (does not exist

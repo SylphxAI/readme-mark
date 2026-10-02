@@ -5,6 +5,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use serde::Deserialize;
+use std::time::Instant;
 
 use crate::bootstrap::AppState;
 use crate::capabilities::live::application::cache::Lookup;
@@ -263,11 +264,13 @@ fn outcome<T>(
     }
 }
 
-async fn stats(st: &AppState, q: &CardQuery) -> Card {
+/// The stats card plus its `Server-Timing` value (cache state, upstream and
+/// render milliseconds), so production latency is visible from the response.
+async fn stats_timed(st: &AppState, q: &CardQuery) -> (Card, Option<String>) {
     let (style, o) = (q.style(), q.stats_options());
     let size = stats_card::fallback_size(&style, &o);
     let Some(login) = q.login().filter(|l| valid_login(l)) else {
-        return match q.login() {
+        let card = match q.login() {
             None => explain(
                 &style,
                 size,
@@ -276,12 +279,42 @@ async fn stats(st: &AppState, q: &CardQuery) -> Card {
             ),
             Some(_) => explain(&style, size, "GitHub Stats", Why::Missing("user")),
         };
+        return (card, None);
     };
     let title = style.title_or(stats_card::default_title(&login));
+    let cached = st.live.stats_cached(&login).await;
+    let started = Instant::now();
     let data = st.live.stats(&login, &list(&q.exclude_repo)).await;
-    outcome(data, &style, size, &title, "user", |d| {
+    let upstream = started.elapsed();
+    // A card missing a part (a slow upstream hid it) must be replaced soon,
+    // not kept for hours: the part is filling the cache meanwhile.
+    let partial = matches!(&data, Lookup::Found(d)
+        if d.stars.is_none() || d.commits.is_none() || d.prs.is_none() || d.issues.is_none());
+    let started = Instant::now();
+    let (svg, policy) = outcome(data, &style, size, &title, "user", |d| {
         stats_card::render(&d, &style, &o)
-    })
+    });
+    let timing = format!(
+        "cache;desc=\"{}\", upstream;dur={:.1}, render;dur={:.2}",
+        if cached { "hit" } else { "miss" },
+        upstream.as_secs_f64() * 1000.0,
+        started.elapsed().as_secs_f64() * 1000.0,
+    );
+    let policy = if partial {
+        CachePolicy::Fallback
+    } else {
+        policy
+    };
+    ((svg, policy), Some(timing))
+}
+
+/// Attach `Server-Timing` to a response.
+fn with_timing(mut res: Response, timing: Option<String>) -> Response {
+    if let Some(v) = timing.and_then(|t| axum::http::HeaderValue::from_str(&t).ok()) {
+        res.headers_mut()
+            .insert(axum::http::HeaderName::from_static("server-timing"), v);
+    }
+    res
 }
 
 async fn langs(st: &AppState, q: &CardQuery) -> Card {
@@ -395,7 +428,8 @@ fn respond((svg, policy): Card, headers: &HeaderMap) -> Response {
 
 /// `/api?username=…` (github-readme-stats stats card).
 pub(crate) async fn stats_card(st: &AppState, q: &CardQuery, headers: &HeaderMap) -> Response {
-    respond(stats(st, q).await, headers)
+    let (card, timing) = stats_timed(st, q).await;
+    with_timing(respond(card, headers), timing)
 }
 
 /// `/api/top-langs?username=…`.
@@ -461,8 +495,13 @@ pub(crate) async fn card_handler(
     Query(q): Query<CardQuery>,
     headers: HeaderMap,
 ) -> Response {
+    let mut timing = None;
     let card = match kind.as_str() {
-        "stats" => stats(&st, &q).await,
+        "stats" => {
+            let (card, t) = stats_timed(&st, &q).await;
+            timing = t;
+            card
+        }
         "langs" | "top-langs" => langs(&st, &q).await,
         "streak" => streak(&st, &q).await,
         "repo" | "pin" => repo(&st, &q).await,
@@ -470,5 +509,5 @@ pub(crate) async fn card_handler(
         "stars" | "star-history" => stars(&st, &q).await,
         _ => return StatusCode::NOT_FOUND.into_response(),
     };
-    respond(card, &headers)
+    with_timing(respond(card, &headers), timing)
 }

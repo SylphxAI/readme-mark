@@ -203,6 +203,26 @@ impl HttpUpstream {
         })
     }
 
+    /// Keep a TLS connection to `api.github.com` open: a cold card otherwise
+    /// pays DNS, TCP and TLS on its first call. `/rate_limit` spends no quota.
+    /// Without a runtime (unit tests) this does nothing.
+    pub(crate) fn keep_warm(self: &std::sync::Arc<Self>) {
+        if tokio::runtime::Handle::try_current().is_err() {
+            return;
+        }
+        let this = self.clone();
+        tokio::spawn(async move {
+            loop {
+                let _ = this
+                    .client
+                    .head("https://api.github.com/rate_limit")
+                    .send()
+                    .await;
+                tokio::time::sleep(Duration::from_secs(30)).await;
+            }
+        });
+    }
+
     /// Tokens from `GITHUB_TOKENS` (comma-separated) and `GITHUB_TOKEN`.
     pub(crate) fn tokens_from_env() -> Vec<String> {
         let mut out: Vec<String> = Vec::new();

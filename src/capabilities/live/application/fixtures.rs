@@ -39,11 +39,14 @@ const REPO: &str = r#"{"name":"mark","owner":{"login":"SylphxAI"},
 "language":"Rust","stargazers_count":1523,"forks_count":87,"size":2048,"fork":false,"archived":false,"is_template":false,
 "license":{"spdx_id":"MIT"},"pushed_at":"2026-09-22T10:00:00Z"}"#;
 
-const GQL_STATS: &str = r#"{"data":{"user":{"name":"Ada Lovelace","login":"ada-dev","createdAt":"2016-03-14T09:26:53Z","followers":{"totalCount":318},
-"contributionsCollection":{"totalCommitContributions":1204,"totalPullRequestReviewContributions":88},
-"repositoriesContributedTo":{"totalCount":41},"pullRequests":{"totalCount":142},
-"openIssues":{"totalCount":7},"closedIssues":{"totalCount":30},
-"repositories":{"totalCount":5,"nodes":[{"name":"analytical-engine","stargazers":{"totalCount":1840}},{"name":"notes-on-bernoulli","stargazers":{"totalCount":642}}]}}}}"#;
+const GQL_CORE: &str = r#"{"data":{"user":{"name":"Ada Lovelace","login":"ada-dev","createdAt":"2016-03-14T09:26:53Z","followers":{"totalCount":318},
+"pullRequests":{"totalCount":142},"openIssues":{"totalCount":7},"closedIssues":{"totalCount":30},
+"repositories":{"totalCount":5}}}}"#;
+
+const GQL_STARS: &str = r#"{"data":{"user":{"repositories":{"nodes":[{"name":"analytical-engine","stargazers":{"totalCount":1840}},{"name":"notes-on-bernoulli","stargazers":{"totalCount":642}}]}}}}"#;
+
+const GQL_ACTIVITY: &str = r#"{"data":{"user":{"contributionsCollection":{"totalCommitContributions":1204,"totalPullRequestReviewContributions":88},
+"repositoriesContributedTo":{"totalCount":41}}}}"#;
 
 const GQL_LANGS: &str = r##"{"data":{"user":{"repositories":{"nodes":[
 {"name":"analytical-engine","languages":{"edges":[{"size":520000,"node":{"color":"#dea584","name":"Rust"}},{"size":40000,"node":{"color":"#89e051","name":"Shell"}}]}},
@@ -108,8 +111,12 @@ fn answer(call: &Call, token: bool) -> Result<Reply, UpstreamError> {
             let b = call.body.as_deref().unwrap_or("");
             body(if b.contains("languages(") {
                 GQL_LANGS
+            } else if b.contains("stargazers{") {
+                GQL_STARS
+            } else if b.contains("contributionsCollection") {
+                GQL_ACTIVITY
             } else {
-                GQL_STATS
+                GQL_CORE
             })
         }
         Resource::Web if url.ends_with("/users/ada-dev/contributions") => {

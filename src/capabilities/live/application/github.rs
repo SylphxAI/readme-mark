@@ -34,21 +34,28 @@ pub(crate) struct RepoLite {
     pub fork: bool,
 }
 
-/// One GraphQL stats read (server token).
+/// The cheap, always-needed part of the GraphQL stats read (server token):
+/// identity, followers and the PR/issue/repository counts.
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct GqlStats {
+pub(crate) struct GqlCore {
     pub login: String,
     pub name: Option<String>,
     pub followers: u64,
-    pub commits: u64,
     pub prs: u64,
     pub issues: u64,
-    pub reviews: u64,
-    pub contributed_to: u64,
     pub repo_count: u64,
     pub created_at: Option<String>,
-    /// (repository name, stars) for owned repositories.
-    pub repos: Vec<(String, u64)>,
+}
+
+/// (repository name, stars) for owned non-fork repositories, most starred first.
+pub(crate) type GqlStars = Vec<(String, u64)>;
+
+/// The contribution-collection part: the costliest field GitHub resolves.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct GqlActivity {
+    pub commits: u64,
+    pub reviews: u64,
+    pub contributed_to: u64,
 }
 
 /// (repository, language, color, bytes) from GraphQL.
@@ -96,20 +103,29 @@ async fn graphql(
     let Some(v) = read_json(up, call).await? else {
         return Ok(None);
     };
+    let errors = v
+        .get("errors")
+        .and_then(Value::as_array)
+        .map(Vec::as_slice)
+        .unwrap_or_default();
+    let not_found = errors
+        .iter()
+        .any(|e| e.get("type").and_then(Value::as_str) == Some("NOT_FOUND"));
     match v.pointer("/data/user") {
-        Some(Value::Null) | None => {
-            let not_found = v.get("errors").and_then(Value::as_array).is_some_and(|es| {
-                es.iter()
-                    .any(|e| e.get("type").and_then(Value::as_str) == Some("NOT_FOUND"))
-            });
-            if not_found {
-                Ok(None)
-            } else {
-                Err(UpstreamError::Malformed(
-                    "GraphQL answered without data".into(),
-                ))
-            }
-        }
+        Some(Value::Null) | None if not_found => Ok(None),
+        Some(Value::Null) | None => Err(UpstreamError::Malformed(
+            "GraphQL answered without data".into(),
+        )),
+        // GitHub answers a timed-out or throttled field with `null` plus an
+        // entry in `errors`; that partial body must not be cached as zeros.
+        Some(_) if !errors.is_empty() => Err(UpstreamError::Malformed(format!(
+            "GraphQL partial answer: {}",
+            errors
+                .iter()
+                .filter_map(|e| e.get("type").and_then(Value::as_str))
+                .collect::<Vec<_>>()
+                .join(",")
+        ))),
         Some(user) => Ok(Some(user.clone())),
     }
 }
@@ -330,45 +346,74 @@ pub(crate) async fn stargazer_page(
         .unwrap_or_default())
 }
 
-const STATS_QUERY: &str = "query($login:String!){user(login:$login){name login createdAt \
-followers{totalCount} \
-contributionsCollection{totalCommitContributions totalPullRequestReviewContributions} \
-repositoriesContributedTo(first:1,contributionTypes:[COMMIT,ISSUE,PULL_REQUEST,REPOSITORY]){totalCount} \
-pullRequests(first:1){totalCount} openIssues:issues(states:OPEN){totalCount} closedIssues:issues(states:CLOSED){totalCount} \
-repositories(first:100,ownerAffiliations:OWNER,isFork:false,orderBy:{direction:DESC,field:STARGAZERS}){totalCount nodes{name stargazers{totalCount}}}}}";
+// The stats card is three independent GraphQL reads that run in parallel:
+// GitHub resolves one query's fields in sequence, and the contribution
+// collection and the star-sorted repository list are each slow enough on a
+// large account to dominate a combined query.
+const CORE_QUERY: &str = "query($login:String!){user(login:$login){name login createdAt \
+followers{totalCount} pullRequests(first:1){totalCount} \
+openIssues:issues(states:OPEN){totalCount} closedIssues:issues(states:CLOSED){totalCount} \
+repositories(ownerAffiliations:OWNER,isFork:false){totalCount}}}";
 
-pub(crate) async fn gql_stats(
+const STARS_QUERY: &str = "query($login:String!){user(login:$login){\
+repositories(first:100,ownerAffiliations:OWNER,isFork:false,orderBy:{direction:DESC,field:STARGAZERS}){nodes{name stargazers{totalCount}}}}}";
+
+const ACTIVITY_QUERY: &str = "query($login:String!){user(login:$login){\
+contributionsCollection{totalCommitContributions totalPullRequestReviewContributions} \
+repositoriesContributedTo(first:1,contributionTypes:[COMMIT,ISSUE,PULL_REQUEST,REPOSITORY]){totalCount}}}";
+
+pub(crate) async fn gql_core(
     up: &dyn Upstream,
     login: &str,
-) -> Result<Option<GqlStats>, UpstreamError> {
-    let Some(u) = graphql(up, STATS_QUERY, login).await? else {
+) -> Result<Option<GqlCore>, UpstreamError> {
+    let Some(u) = graphql(up, CORE_QUERY, login).await? else {
         return Ok(None);
     };
-    let repos = u
-        .pointer("/repositories/nodes")
-        .and_then(Value::as_array)
-        .map(|ns| {
-            ns.iter()
-                .filter_map(|n| Some((text(n, "name")?, count(n, &["stargazers"]))))
-                .collect()
-        })
-        .unwrap_or_default();
-    let cc = u
-        .get("contributionsCollection")
-        .cloned()
-        .unwrap_or(Value::Null);
-    Ok(Some(GqlStats {
+    Ok(Some(GqlCore {
         login: text(&u, "login").unwrap_or_else(|| login.to_string()),
         name: text(&u, "name").filter(|n| !n.trim().is_empty()),
         followers: count(&u, &["followers"]),
-        commits: num(&cc, "totalCommitContributions"),
         prs: count(&u, &["pullRequests"]),
         issues: count(&u, &["openIssues"]) + count(&u, &["closedIssues"]),
-        reviews: num(&cc, "totalPullRequestReviewContributions"),
-        contributed_to: count(&u, &["repositoriesContributedTo"]),
         repo_count: count(&u, &["repositories"]),
         created_at: text(&u, "createdAt"),
-        repos,
+    }))
+}
+
+pub(crate) async fn gql_stars(
+    up: &dyn Upstream,
+    login: &str,
+) -> Result<Option<GqlStars>, UpstreamError> {
+    let Some(u) = graphql(up, STARS_QUERY, login).await? else {
+        return Ok(None);
+    };
+    let nodes = u
+        .pointer("/repositories/nodes")
+        .and_then(Value::as_array)
+        .ok_or_else(|| UpstreamError::Malformed("GraphQL answered without repositories".into()))?;
+    Ok(Some(
+        nodes
+            .iter()
+            .filter_map(|n| Some((text(n, "name")?, count(n, &["stargazers"]))))
+            .collect(),
+    ))
+}
+
+pub(crate) async fn gql_activity(
+    up: &dyn Upstream,
+    login: &str,
+) -> Result<Option<GqlActivity>, UpstreamError> {
+    let Some(u) = graphql(up, ACTIVITY_QUERY, login).await? else {
+        return Ok(None);
+    };
+    let cc = u
+        .get("contributionsCollection")
+        .filter(|c| !c.is_null())
+        .ok_or_else(|| UpstreamError::Malformed("GraphQL answered without contributions".into()))?;
+    Ok(Some(GqlActivity {
+        commits: num(cc, "totalCommitContributions"),
+        reviews: num(cc, "totalPullRequestReviewContributions"),
+        contributed_to: count(&u, &["repositoriesContributedTo"]),
     }))
 }
 
@@ -408,4 +453,34 @@ pub(crate) async fn gql_langs(
         }
     }
     Ok(Some(out))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::capabilities::live::application::upstream::{BoxFut, Reply};
+
+    struct Canned(&'static str);
+
+    impl Upstream for Canned {
+        fn call(&self, _: Call) -> BoxFut<'_, Result<Reply, UpstreamError>> {
+            Box::pin(async move { Ok(Reply::Body(self.0.to_string())) })
+        }
+        fn has_token(&self) -> bool {
+            true
+        }
+    }
+
+    #[tokio::test]
+    async fn a_partial_graphql_answer_is_an_error_not_zeros() {
+        let partial = Canned(
+            r#"{"data":{"user":{"repositories":{"nodes":null}}},"errors":[{"type":"RESOURCE_LIMITS_EXCEEDED"}]}"#,
+        );
+        assert!(matches!(
+            gql_stars(&partial, "x").await,
+            Err(UpstreamError::Malformed(_))
+        ));
+        let missing = Canned(r#"{"data":{"user":null},"errors":[{"type":"NOT_FOUND"}]}"#);
+        assert_eq!(gql_core(&missing, "x").await, Ok(None));
+    }
 }
