@@ -852,3 +852,19 @@ async fn raw_page_templates_are_never_served_as_files() {
     assert_eq!(status, StatusCode::OK);
     assert!(!body.contains("{{FOOTER}}") && !body.contains("{{BASE}}"));
 }
+
+#[tokio::test]
+async fn stats_card_reports_server_timing() {
+    for path in [
+        "/api?username=ada-dev",
+        "/api/v1/card/stats?username=ada-dev",
+    ] {
+        let (status, headers, _) = get_headers(path, Some("image/svg+xml,*/*")).await;
+        assert_eq!(status, StatusCode::OK, "{path}");
+        let t = headers["server-timing"].to_str().unwrap();
+        assert!(
+            t.contains("cache;desc=") && t.contains("upstream;dur=") && t.contains("render;dur="),
+            "{path}: {t}"
+        );
+    }
+}

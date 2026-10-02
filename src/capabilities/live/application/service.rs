@@ -17,14 +17,15 @@ use std::time::Duration;
 
 use super::cache::{Lookup, Ttl, TtlCache};
 use super::fixtures::{fixture_now, FixtureUpstream};
-use super::github::{self, GqlLang, GqlStats, Profile, RepoLite};
+use super::github::{self, GqlActivity, GqlCore, GqlLang, GqlStars, Profile, RepoLite};
 use super::npm;
 use super::registries;
 use super::upstream::{unix_now, HttpUpstream, Upstream, UpstreamError};
 
 /// How long a stats card waits for an optional part (stars, commits, PRs,
-/// issues) before rendering without it.
-const OPTIONAL_WAIT: Duration = Duration::from_millis(3000);
+/// issues) before rendering without it. The parts of one card run in parallel,
+/// so this bounds the whole card; a slower part still fills the cache.
+const OPTIONAL_WAIT: Duration = Duration::from_millis(1500);
 use crate::capabilities::live::domain::calendar::{summarize, Calendar, StreakSummary};
 use crate::capabilities::live::domain::languages::aggregate;
 use crate::capabilities::live::domain::model::{
@@ -40,7 +41,9 @@ pub struct LiveService {
     repos: TtlCache<Vec<RepoLite>>,
     counts: TtlCache<u64>,
     calendars: TtlCache<Calendar>,
-    gql_stats: TtlCache<GqlStats>,
+    gql_core: TtlCache<GqlCore>,
+    gql_stars: TtlCache<GqlStars>,
+    gql_activity: TtlCache<GqlActivity>,
     gql_langs: TtlCache<Vec<GqlLang>>,
     repo: TtlCache<RepoInfo>,
     releases: TtlCache<Option<(String, bool)>>,
@@ -65,7 +68,9 @@ impl LiveService {
             repos: TtlCache::new("repos", 1000, Ttl::PROFILE),
             counts: TtlCache::new("counts", 4000, Ttl::PROFILE),
             calendars: TtlCache::new("calendar", 2000, Ttl::BADGE),
-            gql_stats: TtlCache::new("gql-stats", 2000, Ttl::PROFILE),
+            gql_core: TtlCache::new("gql-core", 2000, Ttl::PROFILE),
+            gql_stars: TtlCache::new("gql-stars", 2000, Ttl::PROFILE),
+            gql_activity: TtlCache::new("gql-activity", 2000, Ttl::PROFILE),
             gql_langs: TtlCache::new("gql-langs", 1000, Ttl::PROFILE),
             repo: TtlCache::new("repo", 2000, Ttl::BADGE),
             releases: TtlCache::new("release", 1000, Ttl::BADGE),
@@ -89,7 +94,9 @@ impl LiveService {
     pub fn from_env() -> Result<Self, reqwest::Error> {
         let tokens = HttpUpstream::tokens_from_env();
         tracing::info!(tokens = tokens.len(), "live upstream configured");
-        Ok(Self::build(Arc::new(HttpUpstream::new(tokens)?), unix_now))
+        let up = Arc::new(HttpUpstream::new(tokens)?);
+        up.keep_warm();
+        Ok(Self::build(up, unix_now))
     }
 
     /// Offline fixtures and a fixed clock (anonymous path).
@@ -140,35 +147,57 @@ impl LiveService {
             .found()
     }
 
+    /// Whether the stats card for `login` would answer from a fresh cache
+    /// entry (for the `Server-Timing` header).
+    pub(crate) async fn stats_cached(&self, login: &str) -> bool {
+        let key = login.to_ascii_lowercase();
+        if self.up.has_token() {
+            self.gql_core.is_fresh(&key).await
+        } else {
+            self.profiles.is_fresh(&key).await
+        }
+    }
+
     pub(crate) async fn stats(&self, login: &str, exclude: &[String]) -> Lookup<UserStats> {
         let up = self.up.as_ref();
         let key = login.to_ascii_lowercase();
         let excluded = |name: &str| exclude.iter().any(|e| e.eq_ignore_ascii_case(name));
         if up.has_token() {
-            match self
-                .gql_stats
-                .fetch(key.clone(), || github::gql_stats(up, login))
-                .await
-            {
+            let (l1, l2) = (login.to_string(), login.to_string());
+            // The cheap core is required; the star list and the contribution
+            // collection are the slow fields on a large account, so they are
+            // optional parts like the anonymous path's.
+            let (core, stars, activity) = tokio::join!(
+                self.gql_core
+                    .fetch(key.clone(), || github::gql_core(up, login)),
+                self.optional(&self.gql_stars, key.clone(), move |up| async move {
+                    github::gql_stars(up.as_ref(), &l1).await
+                }),
+                self.optional(&self.gql_activity, key.clone(), move |up| async move {
+                    github::gql_activity(up.as_ref(), &l2).await
+                }),
+            );
+            match core {
                 Lookup::Found(g) => {
                     return Lookup::Found(UserStats {
-                        stars: Some(
-                            g.repos
-                                .iter()
+                        stars: stars.map(|rs| {
+                            rs.iter()
                                 .filter(|(n, _)| !excluded(n))
                                 .map(|(_, s)| s)
-                                .sum(),
-                        ),
+                                .sum()
+                        }),
                         login: g.login,
                         name: g.name,
                         followers: g.followers,
                         repos: Some(g.repo_count),
                         created_at: g.created_at,
-                        commits: Some((g.commits, CommitSource::CommitsLastYear)),
+                        commits: activity
+                            .as_ref()
+                            .map(|a| (a.commits, CommitSource::CommitsLastYear)),
                         prs: Some(g.prs),
                         issues: Some(g.issues),
-                        reviews: Some(g.reviews),
-                        contributed_to: Some(g.contributed_to),
+                        reviews: activity.as_ref().map(|a| a.reviews),
+                        contributed_to: activity.map(|a| a.contributed_to),
                     })
                 }
                 Lookup::Missing => return Lookup::Missing,
@@ -524,6 +553,19 @@ mod tests {
         };
         assert_eq!(l.source, LangSource::Bytes);
         assert_eq!(l.langs[0].name, "Rust");
+    }
+
+    #[tokio::test]
+    async fn token_stats_carry_every_part_and_cache_state() {
+        let live = LiveService::for_tests_with_token();
+        assert!(!live.stats_cached("ada-dev").await);
+        let Lookup::Found(s) = live.stats("ada-dev", &[]).await else {
+            panic!("fixture user resolves");
+        };
+        assert_eq!(s.commits.map(|c| c.0), Some(1204));
+        assert_eq!(s.reviews, Some(88));
+        assert_eq!(s.prs, Some(142));
+        assert!(live.stats_cached("ada-dev").await);
     }
 
     #[tokio::test]
