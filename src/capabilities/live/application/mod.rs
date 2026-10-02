@@ -6,6 +6,8 @@ mod github;
 pub(crate) mod npm;
 pub(crate) mod registries;
 mod service;
+pub(crate) mod switch_registries;
+pub(crate) mod switch_service;
 mod upstream;
 
 pub use service::LiveService;

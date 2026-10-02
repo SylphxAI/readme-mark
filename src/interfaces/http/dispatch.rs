@@ -90,7 +90,7 @@ pub(crate) async fn api(
 /// Whether an `Accept` header asks for the HTML docs instead of the JSON
 /// index: `text/html` is accepted and `application/json` is not. JSON wins
 /// whenever it is requested (`application/json, text/html;q=0.1`).
-fn prefers_html(accept: Option<&str>) -> bool {
+pub(super) fn prefers_html(accept: Option<&str>) -> bool {
     let (mut html, mut json) = (false, false);
     for part in accept.unwrap_or("").split(',') {
         let mut fields = part.split(';');

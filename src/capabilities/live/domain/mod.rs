@@ -6,6 +6,7 @@ pub(crate) mod badges;
 pub(crate) mod calendar;
 pub(crate) mod card;
 pub(crate) mod date;
+pub(crate) mod endpoint;
 pub(crate) mod format;
 pub(crate) mod langs_card;
 pub(crate) mod languages;

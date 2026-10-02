@@ -23,7 +23,7 @@ pub(crate) struct BadgeExtra {
     pub include_prereleases: Option<String>,
 }
 
-pub(super) fn respond(
+pub(crate) fn respond(
     face: Face,
     policy: CachePolicy,
     st: &AppState,

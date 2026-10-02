@@ -32,6 +32,9 @@ pub(crate) enum Resource {
     /// Other public registries (pub.dev, Packagist, Bundlephobia, Chrome Web
     /// Store); no token, no tracked quota.
     Registry,
+    /// A user-chosen `https` URL (the shields `endpoint` badge). Served by a
+    /// separate client: no redirects, public addresses only, a small body cap.
+    Endpoint,
 }
 
 #[derive(Debug, Clone)]
@@ -142,6 +145,29 @@ struct Budget {
 
 pub(crate) const MAX_CONCURRENT: usize = 16;
 const MAX_BODY: usize = 4 * 1024 * 1024;
+/// An endpoint document is a few hundred bytes; 32 KiB is already generous.
+const ENDPOINT_MAX_BODY: usize = 32 * 1024;
+
+/// Resolves names for endpoint calls and drops every address that is not
+/// globally routable. The connector dials exactly what this returns, so a
+/// name that points (or later rebinds) at a private address cannot be reached.
+struct PublicOnly;
+
+impl reqwest::dns::Resolve for PublicOnly {
+    fn resolve(&self, name: reqwest::dns::Name) -> reqwest::dns::Resolving {
+        Box::pin(async move {
+            let host = name.as_str().to_string();
+            let public: Vec<std::net::SocketAddr> = tokio::net::lookup_host((host.as_str(), 443))
+                .await?
+                .filter(|a| crate::capabilities::live::domain::endpoint::is_public_ip(a.ip()))
+                .collect();
+            if public.is_empty() {
+                return Err("no public address".into());
+            }
+            Ok(Box::new(public.into_iter()) as reqwest::dns::Addrs)
+        })
+    }
+}
 
 /// A decoded response body that refuses to grow past its cap.
 struct BodyBuf {
@@ -172,6 +198,8 @@ impl BodyBuf {
 
 pub(crate) struct HttpUpstream {
     client: reqwest::Client,
+    /// Hardened client for [`Resource::Endpoint`].
+    endpoint_client: reqwest::Client,
     tokens: Vec<String>,
     next: AtomicUsize,
     /// Keyed by (token index, or `None` for anonymous; resource).
@@ -194,8 +222,23 @@ impl HttpUpstream {
             ))
             .gzip(true)
             .build()?;
+        let endpoint_client = reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(2))
+            .timeout(Duration::from_secs(3))
+            .user_agent(concat!(
+                "readme-mark/",
+                env!("CARGO_PKG_VERSION"),
+                " (+https://mark.sylphx.com)"
+            ))
+            .https_only(true)
+            .redirect(reqwest::redirect::Policy::none())
+            .no_proxy()
+            .dns_resolver(std::sync::Arc::new(PublicOnly))
+            .gzip(true)
+            .build()?;
         Ok(Self {
             client,
+            endpoint_client,
             tokens,
             next: AtomicUsize::new(0),
             budgets: Mutex::new(HashMap::new()),
@@ -250,7 +293,10 @@ impl HttpUpstream {
     /// left, else anonymous (REST only), else rate limited.
     fn pick(&self, resource: Resource) -> Result<Option<usize>, UpstreamError> {
         let now = unix_now();
-        if matches!(resource, Resource::Web | Resource::Npm | Resource::Registry) {
+        if matches!(
+            resource,
+            Resource::Web | Resource::Npm | Resource::Registry | Resource::Endpoint
+        ) {
             return Ok(None);
         }
         let n = self.tokens.len();
@@ -315,13 +361,17 @@ impl HttpUpstream {
     }
 
     async fn once(&self, call: &Call, slot: Option<usize>) -> Result<(u16, String), UpstreamError> {
+        let (client, cap) = if call.resource == Resource::Endpoint {
+            (&self.endpoint_client, ENDPOINT_MAX_BODY)
+        } else {
+            (&self.client, MAX_BODY)
+        };
         let mut req = match &call.body {
-            Some(body) => self
-                .client
+            Some(body) => client
                 .post(&call.url)
                 .header("content-type", "application/json")
                 .body(body.clone()),
-            None => self.client.get(&call.url),
+            None => client.get(&call.url),
         };
         if matches!(call.resource, Resource::Core | Resource::Search) {
             req = req
@@ -343,12 +393,12 @@ impl HttpUpstream {
         })?;
         let status = res.status().as_u16();
         self.record(slot, call.resource, res.headers());
-        if status == 200 && res.content_length().is_some_and(|l| l as usize > MAX_BODY) {
+        if status == 200 && res.content_length().is_some_and(|l| l as usize > cap) {
             return Err(UpstreamError::Malformed("body too large".into()));
         }
         // Content-Length is absent (or describes the compressed size) when the
         // body is gzip-encoded, so the cap is enforced on the decoded stream.
-        let mut buf = BodyBuf::new(MAX_BODY);
+        let mut buf = BodyBuf::new(cap);
         loop {
             match res.chunk().await {
                 Ok(Some(chunk)) => buf.push(&chunk)?,
@@ -362,6 +412,13 @@ impl HttpUpstream {
     }
 
     async fn run(&self, call: Call) -> Result<Reply, UpstreamError> {
+        // Second layer behind the route's own check: a literal-IP host skips
+        // the resolver, so the vetting is repeated at the one place that dials.
+        if call.resource == Resource::Endpoint
+            && crate::capabilities::live::domain::endpoint::check_url(&call.url).is_err()
+        {
+            return Err(UpstreamError::Transport("endpoint url refused".into()));
+        }
         let slot = self.pick(call.resource)?;
         let _permit = tokio::time::timeout(Duration::from_secs(2), self.permits.acquire())
             .await
@@ -425,6 +482,35 @@ mod tests {
             up.pick(Resource::Search),
             Ok(None),
             "budgets are per resource"
+        );
+    }
+
+    #[tokio::test]
+    async fn endpoint_calls_never_dial_private_or_plain_targets() {
+        let up = HttpUpstream::new(Vec::new()).expect("client builds");
+        for url in [
+            "https://127.0.0.1/x",
+            "https://[::1]/x",
+            "https://169.254.169.254/x",
+            "http://example.com/x",
+            "https://localhost/x",
+        ] {
+            let got = up.call(Call::read(Resource::Endpoint, url.into())).await;
+            assert_eq!(
+                got,
+                Err(UpstreamError::Transport("endpoint url refused".into())),
+                "{url}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn the_endpoint_resolver_drops_non_public_addresses() {
+        use reqwest::dns::Resolve;
+        let name: reqwest::dns::Name = "localhost".parse().expect("a valid name");
+        assert!(
+            PublicOnly.resolve(name).await.is_err(),
+            "localhost has no public address"
         );
     }
 

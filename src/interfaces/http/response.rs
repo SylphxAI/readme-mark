@@ -31,6 +31,8 @@ pub(crate) enum CachePolicy {
     Live,
     /// Live stand-in when there is no data to render.
     Fallback,
+    /// Live data its owner updates often (a user's `endpoint` JSON): minutes.
+    Short,
 }
 
 impl CachePolicy {
@@ -41,7 +43,7 @@ impl CachePolicy {
                 HeaderValue::from_static(LIVE_CACHE),
                 HeaderValue::from_static(LIVE_EDGE_CACHE),
             ),
-            Self::Fallback => (
+            Self::Fallback | Self::Short => (
                 HeaderValue::from_static(FALLBACK_CACHE),
                 HeaderValue::from_static(FALLBACK_CACHE),
             ),

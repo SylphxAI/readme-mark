@@ -8,6 +8,8 @@
 //!   download counts yet); pub.dev `mark_demo`; Packagist `sylphx/mark`;
 //!   Bundlephobia `mark-demo`; Chrome Web Store item
 //!   `gighmmpiobklfepjocnamgkkbiglidom`;
+//! - PyPI, crates.io, Docker Hub and endpoint subjects for the shields switch
+//!   (`mark-demo`, `sylphx/mark`, `library/nginx`, `status.example.test`);
 //! - any URL naming `ghost-404` is not found; any naming `offline` times out.
 
 use super::upstream::{BoxFut, Call, Reply, Resource, Upstream, UpstreamError};
@@ -172,6 +174,34 @@ fn answer(call: &Call, token: bool) -> Result<Reply, UpstreamError> {
             "https://chromewebstore.google.com/detail/gighmmpiobklfepjocnamgkkbiglidom" => body(
                 r#"<script>AF_initDataCallback({key: 'ds:0', hash: '2', data:[["gighmmpiobklfepjocnamgkkbiglidom","i","Demo",4.47,290290,"x","s","u",1,null,null,["c",null,4],1,1,64000000,1,"i",[1,2],"{\"version\": \"6.29.0\"}"]], sideChannel: {}});</script>"#,
             ),
+            "https://pypi.org/pypi/mark-demo/json" => {
+                body(r#"{"info":{"version":"3.2.1","name":"mark-demo"}}"#)
+            }
+            "https://pypistats.org/api/packages/mark-demo/recent" => {
+                body(r#"{"data":{"last_day":1200,"last_week":98765,"last_month":2345678},"package":"mark-demo","type":"recent_downloads"}"#)
+            }
+            "https://crates.io/api/v1/crates/mark-demo" => body(
+                r#"{"crate":{"id":"mark-demo","max_version":"1.5.0-rc.1","max_stable_version":"1.4.2","downloads":12345678,"recent_downloads":234567}}"#,
+            ),
+            "https://hub.docker.com/v2/repositories/sylphx/mark" => {
+                body(r#"{"pull_count":4200000,"star_count":88}"#)
+            }
+            "https://hub.docker.com/v2/repositories/library/nginx" => {
+                body(r#"{"pull_count":9876543210,"star_count":21000}"#)
+            }
+            "https://hub.docker.com/v2/repositories/sylphx/mark/tags?page_size=50&ordering=last_updated" => body(
+                r#"{"results":[{"name":"latest"},{"name":"1.9.0"},{"name":"1.10.0"},{"name":"1.10.0-alpine"}]}"#,
+            ),
+            _ => Ok(Reply::NotFound),
+        },
+        Resource::Endpoint => match url {
+            "https://status.example.test/mark.json" => body(
+                r#"{"schemaVersion":1,"label":"build","message":"passing","color":"brightgreen","labelColor":"333"}"#,
+            ),
+            "https://status.example.test/error.json" => body(
+                r#"{"schemaVersion":1,"label":"deploy","message":"down","isError":true}"#,
+            ),
+            "https://status.example.test/bad.json" => body(r#"{"schemaVersion":9}"#),
             _ => Ok(Reply::NotFound),
         },
         Resource::Npm => match url {

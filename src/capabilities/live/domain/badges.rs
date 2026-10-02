@@ -204,6 +204,12 @@ pub(crate) fn not_found(label: &str, what: &str) -> Face {
     face(label, format!("{what} not found"), "lightgrey")
 }
 
+/// A shields path Mark knows the family of but has no source for yet: a calm
+/// badge in place of a broken image on someone else's page.
+pub(crate) fn unsupported(label: &str) -> Face {
+    face(label, "unsupported".into(), "lightgrey")
+}
+
 /// Upstream failed and nothing is cached: still a calm, readable badge.
 pub(crate) fn unavailable(label: &str) -> Face {
     face(label, "unavailable".into(), "lightgrey")

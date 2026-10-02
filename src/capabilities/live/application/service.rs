@@ -57,6 +57,7 @@ pub struct LiveService {
     chrome: TtlCache<ChromeItem>,
     workflows: TtlCache<Option<WorkflowRun>>,
     star_history: TtlCache<StarHistory>,
+    pub(super) switch: super::switch_service::SwitchCaches,
 }
 
 impl LiveService {
@@ -84,6 +85,7 @@ impl LiveService {
             chrome: TtlCache::new("chrome", 500, Ttl::PROFILE),
             workflows: TtlCache::new("workflow", 2000, Ttl::STATUS),
             star_history: TtlCache::new("star-history", 500, Ttl::DAILY),
+            switch: super::switch_service::SwitchCaches::new(),
         }
     }
 
@@ -113,7 +115,7 @@ impl LiveService {
         (self.clock)()
     }
 
-    fn up(&self) -> &dyn Upstream {
+    pub(super) fn up(&self) -> &dyn Upstream {
         self.up.as_ref()
     }
 
