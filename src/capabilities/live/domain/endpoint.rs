@@ -88,6 +88,10 @@ fn public_v6(ip: Ipv6Addr) -> bool {
     !(ip.is_loopback()
         || ip.is_unspecified()
         || ip.is_multicast()
+        || s[..6] == [0; 6] // ::/96 IPv4-compatible
+        || s[0] == 0x2002 // 6to4
+        || (s[0] == 0x2001 && s[1] == 0) // Teredo 2001::/32
+        || (s[0] & 0xffc0) == 0xfec0 // site-local fec0::/10
         || (s[0] & 0xfe00) == 0xfc00 // unique local fc00::/7
         || (s[0] & 0xffc0) == 0xfe80 // link-local fe80::/10
         || (s[0] == 0x2001 && s[1] == 0x0db8) // documentation
@@ -115,7 +119,9 @@ pub(crate) fn check_url(raw: &str) -> Result<Url, UrlRefusal> {
         Ok(ip) => public_host(is_public_ip(ip)),
         Err(_) => {
             let d = host.trim_end_matches('.').to_ascii_lowercase();
-            let internal = !d.contains('.')
+            let ours = d == "sylphx.com" || d.ends_with(".sylphx.com");
+            let internal = ours
+                || !d.contains('.')
                 || d == "localhost"
                 || [".localhost", ".local", ".internal", ".home.arpa", ".lan"]
                     .iter()
@@ -187,6 +193,15 @@ mod tests {
             ("https://intranet/x", UrlRefusal::PrivateHost),
             ("https://db.internal/x", UrlRefusal::PrivateHost),
             ("https://127.0.0.1/x", UrlRefusal::PrivateHost),
+            (
+                "https://mark.sylphx.com/badge/a-b-c",
+                UrlRefusal::PrivateHost,
+            ),
+            ("https://sylphx.com/x", UrlRefusal::PrivateHost),
+            ("https://[::7f00:1]/x", UrlRefusal::PrivateHost),
+            ("https://[2002:7f00:1::]/x", UrlRefusal::PrivateHost),
+            ("https://[2001:0:4136:e378::1]/x", UrlRefusal::PrivateHost),
+            ("https://[fec0::1]/x", UrlRefusal::PrivateHost),
             ("https://2130706433/x", UrlRefusal::PrivateHost),
             ("https://0x7f.1/x", UrlRefusal::PrivateHost),
             ("https://10.0.0.5/x", UrlRefusal::PrivateHost),
