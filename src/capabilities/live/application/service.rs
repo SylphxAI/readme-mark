@@ -175,15 +175,6 @@ impl LiveService {
                 Lookup::Unavailable => {}
             }
         }
-        let profile = match self
-            .profiles
-            .fetch(key, || github::profile(up, login))
-            .await
-        {
-            Lookup::Found(p) => p,
-            Lookup::Missing => return Lookup::Missing,
-            Lookup::Unavailable => return Lookup::Unavailable,
-        };
         let key = login.to_ascii_lowercase();
         let (l1, l2, l3, l4) = (
             login.to_string(),
@@ -191,7 +182,12 @@ impl LiveService {
             login.to_string(),
             login.to_string(),
         );
-        let (repos, calendar, prs, issues) = tokio::join!(
+        // One round trip: the profile and the optional parts start together
+        // (bounded: five calls, under the adapter's concurrency cap), so a
+        // cold card no longer pays the profile read before the rest.
+        let (profile, repos, calendar, prs, issues) = tokio::join!(
+            self.profiles
+                .fetch(key.clone(), || github::profile(up, login)),
             self.optional(&self.repos, key.clone(), move |up| async move {
                 github::owned_repos(up.as_ref(), &l1).await
             }),
@@ -205,6 +201,11 @@ impl LiveService {
                 github::search_count(up.as_ref(), &format!("author:{l4} type:issue")).await
             }),
         );
+        let profile = match profile {
+            Lookup::Found(p) => p,
+            Lookup::Missing => return Lookup::Missing,
+            Lookup::Unavailable => return Lookup::Unavailable,
+        };
         Lookup::Found(UserStats {
             stars: repos.map(|rs| {
                 rs.iter()
@@ -457,6 +458,40 @@ async fn star_samples(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::capabilities::live::application::upstream::{BoxFut, Call, Reply};
+
+    /// Fixture answers after a fixed network delay.
+    struct Slow(FixtureUpstream, Duration);
+
+    impl Upstream for Slow {
+        fn call(&self, call: Call) -> BoxFut<'_, Result<Reply, UpstreamError>> {
+            let (inner, delay) = (self.0.call(call), self.1);
+            Box::pin(async move {
+                tokio::time::sleep(delay).await;
+                inner.await
+            })
+        }
+
+        fn has_token(&self) -> bool {
+            self.0.has_token()
+        }
+    }
+
+    /// A cold anonymous card costs one round trip, not profile + the rest.
+    #[tokio::test]
+    async fn cold_anonymous_stats_fan_out_in_one_round_trip() {
+        let delay = Duration::from_millis(200);
+        let live = LiveService::build(
+            Arc::new(Slow(FixtureUpstream { token: false }, delay)),
+            fixture_now,
+        );
+        let started = std::time::Instant::now();
+        let found = live.stats("ada-dev", &[]).await;
+        let took = started.elapsed();
+        eprintln!("cold stats with {delay:?} per call: {took:?}");
+        assert!(matches!(found, Lookup::Found(_)));
+        assert!(took < delay * 3 / 2, "calls must overlap, took {took:?}");
+    }
 
     #[tokio::test]
     async fn anonymous_stats_compose_rest_search_and_calendar() {

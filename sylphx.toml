@@ -26,6 +26,7 @@ watch_paths = [
   "src/**",
   "data/**",
   "static/**",
+  "templates/**",
   "Cargo.toml",
   "Cargo.lock",
   "Dockerfile",

@@ -8,9 +8,9 @@ use crate::bootstrap::AppState;
 
 const FOOTER: &str = include_str!("footer.html");
 
-/// Reads `static/{file}` and fills `{{FOOTER}}` and `{{BASE}}`.
+/// Reads `templates/{file}` and fills `{{FOOTER}}` and `{{BASE}}`.
 pub(crate) fn render(file: &str, public_base: &str) -> String {
-    match std::fs::read_to_string(format!("static/{file}")) {
+    match std::fs::read_to_string(format!("templates/{file}")) {
         Ok(html) => html
             .replace("{{FOOTER}}", FOOTER)
             .replace("{{BASE}}", public_base),

@@ -50,7 +50,7 @@ one kernel, zero state.**
    deterministic. Same URL renders the same SVG forever.
 6. **Totality:** rendering never fails. Unknown form → hero, unknown art →
    `aurora`, invalid colors → fallback paint. The error-SVG path is deleted.
-7. **Studio as the grammar:** `static/index.html` is rewritten palette-first
+7. **Studio as the grammar:** `templates/index.html` is rewritten palette-first
    and form-first around the one grammar (302 lines, was 1110), consuming the
    same `/api/v1/catalog` vocabulary the API exposes.
 8. **Config:** `AppState` is `{default_credit, public_base}` — no upstream, no

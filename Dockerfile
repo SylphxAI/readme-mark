@@ -19,6 +19,7 @@ COPY Cargo.toml Cargo.lock build.rs ./
 COPY src ./src
 COPY data ./data
 COPY static ./static
+COPY templates ./templates
 COPY tests ./tests
 RUN set -eu; \
     TIP="${SYLPHX_GIT_COMMIT_SHA:-}"; \
@@ -59,6 +60,7 @@ ENV PORT=8787 \
     SSL_CERT_DIR=/etc/ssl/certs
 COPY --from=builder /app/target/release/mark /usr/local/bin/mark
 COPY static ./static
+COPY templates ./templates
 # Prove CA bundle + binary are real. `mark --help` must exit (not start the server).
 RUN test -s /etc/ssl/certs/ca-certificates.crt \
   && test -x /usr/local/bin/mark \
