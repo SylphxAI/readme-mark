@@ -460,7 +460,10 @@ impl HttpUpstream {
     fn host_slot(&self, url: &str) -> Result<HostSlot<'_>, UpstreamError> {
         let host = reqwest::Url::parse(url)
             .ok()
-            .and_then(|u| u.host_str().map(|h| h.trim_end_matches('.').to_ascii_lowercase()))
+            .and_then(|u| {
+                u.host_str()
+                    .map(|h| h.trim_end_matches('.').to_ascii_lowercase())
+            })
             .ok_or(UpstreamError::Busy)?;
         let mut hosts = self
             .endpoint_hosts
@@ -637,7 +640,11 @@ mod tests {
                 "https://crates.io/api/v1/crates/serde".into(),
             ))
             .await;
-        assert_eq!(*up.crates_next.lock().unwrap(), before, "endpoint left crates.io pacing untouched");
+        assert_eq!(
+            *up.crates_next.lock().unwrap(),
+            before,
+            "endpoint left crates.io pacing untouched"
+        );
     }
 
     #[test]
