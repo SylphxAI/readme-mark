@@ -122,3 +122,27 @@ pub(crate) struct StarHistory {
     pub repo: String,
     pub points: Vec<(i64, u64)>,
 }
+
+/// PyPI download counters (pypistats' `recent` document).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct PypiDownloads {
+    pub day: u64,
+    pub week: u64,
+    pub month: u64,
+}
+
+/// A crates.io crate's headline facts.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct CrateInfo {
+    pub version: String,
+    pub downloads: u64,
+    /// Downloads over the last 90 days (crates.io's "recent").
+    pub recent: u64,
+}
+
+/// A Docker Hub repository's counters.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct DockerRepo {
+    pub pulls: u64,
+    pub stars: u64,
+}

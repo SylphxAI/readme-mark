@@ -37,6 +37,10 @@ pub(crate) async fn api_index(State(st): State<AppState>) -> impl IntoResponse {
             "/packagist/{v|dm|dd|dt}/{vendor}/{package}",
             "/bundlephobia/{min|minzip}/{package}",
             "/chrome-web-store/{v|users|rating|stars|rating-count}/{id}",
+            "/pypi/{v|dd|dw|dm}/{package}",
+            "/crates/{v|d|dr}/{crate}",
+            "/docker/{pulls|stars|v}/{user}/{image}",
+            "/endpoint?url=",
             "/svg?repos={owner}/{repo}",
             "/api/v1/catalog",
             "/health"

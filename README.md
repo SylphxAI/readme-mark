@@ -123,6 +123,12 @@ Dynamic badges use shields' paths:
 | Packagist | `/packagist/{v,dm,dd,dt}/{vendor}/{package}` |
 | Bundlephobia | `/bundlephobia/{min,minzip}/{package}` |
 | Chrome Web Store | `/chrome-web-store/{v,users,rating,stars,rating-count}/{id}` |
+| PyPI | `/pypi/{v,dd,dw,dm}/{package}` |
+| crates.io | `/crates/{v,d,dr}/{crate}` |
+| Docker Hub | `/docker/{pulls,stars,v}/{user}/{image}` (`library` for official images) |
+| Any JSON | `/endpoint?url=<https URL>`: shields' endpoint badge (schema version 1). https only, public hosts only, no redirects, 3 s and 32 KiB limits |
+
+A shields path Mark does not serve yet answers a valid `unsupported` badge, never an HTML page, so an unmigrated badge stays a readable image instead of a broken one. The paths above are the full supported set (also `/api/v1/catalog`).
 
 ### Star history
 

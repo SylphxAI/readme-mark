@@ -8,6 +8,7 @@ mod health;
 mod pages;
 pub(crate) mod response;
 mod studio;
+mod unknown;
 
 use axum::extract::Request;
 use axum::http::uri::PathAndQuery;
@@ -44,6 +45,11 @@ pub(crate) const IMAGE_ROUTE_PREFIXES: &[&str] = &[
     "/packagist",
     "/bundlephobia",
     "/chrome-web-store",
+    // Shields sources that complete the host swap.
+    "/pypi",
+    "/crates",
+    "/docker",
+    "/endpoint",
 ];
 
 /// `/badge/a-b-c.svg` → `/badge/a-b-c`; only image routes are rewritten, so
@@ -139,6 +145,13 @@ fn routes(state: AppState) -> Router {
             "/chrome-web-store/{kind}/{id}",
             get(live_http::chrome_badge),
         )
+        .route("/pypi/{kind}/{*package}", get(live_http::pypi_badge))
+        .route("/crates/{kind}/{name}", get(live_http::crates_badge))
+        .route(
+            "/docker/{kind}/{user}/{image}",
+            get(live_http::docker_badge),
+        )
+        .route("/endpoint", get(live_http::endpoint_badge))
         .route("/svg", get(live_http::star_history_handler))
         // `/` is the studio, readme-typing-svg's image path (`?lines=`), and
         // github-readme-streak-stats' (`?user=`).
@@ -161,11 +174,11 @@ fn routes(state: AppState) -> Router {
             "/terms",
             get(|| async { Redirect::permanent("/legal/terms") }),
         )
-        // Anything else is a static file, or the Mark-styled 404 page with a
+        // Anything else is a static file, an `unsupported` SVG badge for a
+        // badge-like path (`unknown`), or the Mark-styled 404 page with a
         // real 404 status.
         .fallback_service(
-            ServeDir::new("static")
-                .not_found_service(get(pages::not_found).with_state(state.clone())),
+            ServeDir::new("static").fallback(get(unknown::not_found).with_state(state.clone())),
         )
         // Public SVG GET is origin-independent (`ACAO: *`, no credentials).
         // Default CorsLayer Vary includes Origin, which splits the CDN cache

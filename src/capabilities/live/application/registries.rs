@@ -8,11 +8,11 @@ use crate::capabilities::live::domain::model::{
     BundleSize, ChromeItem, PackagistDownloads, PubScore,
 };
 
-async fn json(up: &dyn Upstream, url: String) -> Result<Option<Value>, UpstreamError> {
+pub(super) async fn json(up: &dyn Upstream, url: String) -> Result<Option<Value>, UpstreamError> {
     read_json(up, Call::read(Resource::Registry, url)).await
 }
 
-fn num(v: &Value, key: &str) -> u64 {
+pub(super) fn num(v: &Value, key: &str) -> u64 {
     v.get(key).and_then(Value::as_u64).unwrap_or(0)
 }
 
@@ -40,17 +40,32 @@ pub(crate) fn valid_chrome_id(id: &str) -> bool {
     id.len() == 32 && token(id, 32, |c| ('a'..='p').contains(&c))
 }
 
+/// The string at JSON `pointer` in the document at `url`: the one shape of
+/// every "latest version" read.
+pub(super) async fn version_at(
+    up: &dyn Upstream,
+    url: String,
+    pointer: &str,
+) -> Result<Option<String>, UpstreamError> {
+    let v = json(up, url).await?;
+    Ok(v.and_then(|v| {
+        v.pointer(pointer)
+            .and_then(Value::as_str)
+            .map(str::to_string)
+    }))
+}
+
 /// The latest pub.dev version.
 pub(crate) async fn pub_version(
     up: &dyn Upstream,
     name: &str,
 ) -> Result<Option<String>, UpstreamError> {
-    let v = json(up, format!("https://pub.dev/api/packages/{name}")).await?;
-    Ok(v.and_then(|v| {
-        v.pointer("/latest/version")
-            .and_then(Value::as_str)
-            .map(str::to_string)
-    }))
+    version_at(
+        up,
+        format!("https://pub.dev/api/packages/{name}"),
+        "/latest/version",
+    )
+    .await
 }
 
 /// Likes, pub points, and 30-day downloads.
@@ -94,20 +109,33 @@ pub(crate) async fn packagist_version(
     }))
 }
 
+/// `N` counters named `keys` inside the object `group` of the document at
+/// `url`; a missing counter reads as zero.
+pub(super) async fn counters<const N: usize>(
+    up: &dyn Upstream,
+    url: String,
+    group: &str,
+    keys: [&str; N],
+) -> Result<Option<[u64; N]>, UpstreamError> {
+    let v = json(up, url).await?;
+    Ok(v.and_then(|v| {
+        let g = v.get(group)?;
+        Some(keys.map(|k| num(g, k)))
+    }))
+}
+
+// duplicate-exception: one counters() call mapped onto a typed record, like PyPI's.
 pub(crate) async fn packagist_downloads(
     up: &dyn Upstream,
     vendor: &str,
     package: &str,
 ) -> Result<Option<PackagistDownloads>, UpstreamError> {
     let url = format!("https://packagist.org/packages/{vendor}/{package}/stats.json");
-    let v = json(up, url).await?;
-    Ok(v.and_then(|v| {
-        let d = v.get("downloads")?;
-        Some(PackagistDownloads {
-            total: num(d, "total"),
-            monthly: num(d, "monthly"),
-            daily: num(d, "daily"),
-        })
+    let got = counters(up, url, "downloads", ["total", "monthly", "daily"]).await?;
+    Ok(got.map(|[total, monthly, daily]| PackagistDownloads {
+        total,
+        monthly,
+        daily,
     }))
 }
 
