@@ -538,6 +538,7 @@ mod tests {
         let live = LiveService::build(
             Arc::new(Slow(FixtureUpstream { token: false }, delay)),
             fixture_now,
+            ClientBudget::new(u32::MAX, Duration::from_secs(60)),
         );
         let started = std::time::Instant::now();
         let found = live.stats("ada-dev", &[]).await;

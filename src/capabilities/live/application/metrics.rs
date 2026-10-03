@@ -34,7 +34,9 @@ impl Counts {
             self.fallback.load(Ordering::Relaxed)
         };
         let total = self.stats.fetch_add(1, Ordering::Relaxed) + 1;
-        (total % LOG_EVERY == 0).then(|| (total, fb, self.throttled.load(Ordering::Relaxed)))
+        total
+            .is_multiple_of(LOG_EVERY)
+            .then(|| (total, fb, self.throttled.load(Ordering::Relaxed)))
     }
 
     pub(crate) fn record_throttled(&self) {
