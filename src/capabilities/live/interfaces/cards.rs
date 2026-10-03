@@ -9,6 +9,7 @@ use std::time::Instant;
 
 use crate::bootstrap::AppState;
 use crate::capabilities::live::application::cache::Lookup;
+use crate::capabilities::live::application::metrics;
 use crate::capabilities::live::domain::card::{notice, CardStyle};
 use crate::capabilities::live::domain::langs_card::{self, LangsOptions, Layout};
 use crate::capabilities::live::domain::palette::ColorOverrides;
@@ -305,6 +306,7 @@ async fn stats_timed(st: &AppState, q: &CardQuery) -> (Card, Option<String>) {
     } else {
         policy
     };
+    metrics::stats_served(policy == CachePolicy::Fallback);
     ((svg, policy), Some(timing))
 }
 

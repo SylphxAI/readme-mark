@@ -286,6 +286,7 @@ docker run --rm -p 8787:8787 mark               # → http://localhost:8787
 | `PORT` / `HOST` | `8787` / `0.0.0.0` | |
 | `PUBLIC_BASE_URL` | derived | The host the studio writes into copied URLs |
 | `GITHUB_TOKEN` or `GITHUB_TOKENS` | — | Optional. Raises the GitHub rate limit for live cards; comma-separate several tokens to rotate them. |
+| `LIVE_CLIENT_FETCHES_PER_MIN` | `300` | Upstream loads (cache misses) one client may cause per minute. Over it, that client gets cached or fallback cards; cached responses, including every `.svg`, are never limited. |
 | `DEFAULT_CREDIT` | `0` | `1` adds a small watermark |
 | `RUST_LOG` | `mark=info` | |
 

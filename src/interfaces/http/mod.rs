@@ -3,6 +3,7 @@
 //! Domain meaning is not owned here; handlers translate HTTP to capability use cases.
 
 mod catalog;
+mod client;
 mod dispatch;
 mod health;
 mod pages;
@@ -196,6 +197,10 @@ fn routes(state: AppState) -> Router {
                 .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO))
                 .on_response(DefaultOnResponse::new().level(tracing::Level::INFO)),
         )
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            client::scope,
+        ))
         .with_state(state)
 }
 

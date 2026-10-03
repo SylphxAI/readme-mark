@@ -22,6 +22,15 @@ pub struct AppState {
 }
 
 impl AppState {
+    /// Like [`AppState::for_tests`], with `limit` upstream loads per client
+    /// per minute (abuse-budget tests).
+    pub fn for_tests_with_budget(limit: u32) -> Self {
+        Self {
+            live: Arc::new(LiveService::for_tests_with_budget(limit)),
+            ..Self::for_tests()
+        }
+    }
+
     /// Process state for in-process contract tests: no credit, a local base
     /// URL. New process fields get their test default here, once, instead of
     /// in every test file.
@@ -95,6 +104,7 @@ pub fn maybe_print_cli_and_exit() -> bool {
         println!("Usage: mark");
         println!("  Serves README images: marks, badges, and live GitHub/npm cards.");
         println!("  Env: PORT HOST PUBLIC_BASE_URL DEFAULT_CREDIT RUST_LOG");
+        println!("  LIVE_CLIENT_FETCHES_PER_MIN caps upstream loads per client (default 300).");
         println!(
             "  Optional: GITHUB_TOKEN or GITHUB_TOKENS (comma-separated) raise live rate limits."
         );

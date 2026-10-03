@@ -159,6 +159,12 @@ impl<V: Clone + Send + Sync + 'static> TtlCache<V> {
                         return Op::Nop;
                     }
                 }
+                if !super::budget::charge() {
+                    // This client is over its upstream budget: keep whatever
+                    // is cached (stale or nothing) and cache no failure, so
+                    // other clients still load on their own budget.
+                    return Op::Nop;
+                }
                 match load().await {
                     Ok(v) => {
                         let (state, fresh) = match v {
@@ -213,7 +219,9 @@ impl<V: Clone + Send + Sync + 'static> TtlCache<V> {
         Fut: Future<Output = Result<Option<V>, UpstreamError>> + Send + 'static,
     {
         let this = self.clone();
-        let task = tokio::spawn(async move { this.fetch(key, load).await });
+        let task = tokio::spawn(super::budget::carry(
+            async move { this.fetch(key, load).await },
+        ));
         match tokio::time::timeout(wait, task).await {
             Ok(Ok(v)) => v,
             _ => Lookup::Unavailable,
