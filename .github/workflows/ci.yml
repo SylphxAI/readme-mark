@@ -55,6 +55,11 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      # No new departure from the default stack (docs/stack-conformance.md in
+      # SylphxAI/.github); .github/stack-departures.txt may only shrink.
+      - uses: SylphxAI/.github/.github/actions/stack-conformance@bc664ac7410c00d233fe4f729b6747969a4a9bed # SylphxAI/.github#208
+        with:
+          base: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || '' }}
       - name: Verify static owned runner profiles
         run: bash scripts/check-owned-runner-profiles.sh
       - name: Benchmark workflow status regression (offline)
