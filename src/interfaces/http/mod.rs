@@ -201,6 +201,10 @@ fn routes(state: AppState) -> Router {
             state.clone(),
             client::scope,
         ))
+        // Quality signals sit outermost so they see the final status: a 5xx
+        // reports `mark.issue.turn_failed.<route>` and every image request
+        // writes its `mark.image.ok|failed` journey line.
+        .layer(axum::middleware::from_fn(crate::signals::observe))
         .with_state(state)
 }
 
