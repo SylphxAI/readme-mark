@@ -59,6 +59,8 @@ jobs:
         run: bash scripts/check-owned-runner-profiles.sh
       - name: Benchmark workflow status regression (offline)
         run: python3 scripts/check-bench-workflow.py
+      - name: Live dialect probe regressions (offline)
+        run: python3 -I scripts/test_probe_dialects.py
       - name: Source hygiene
         run: python3 scripts/check-source-hygiene.py
       - name: Duplication
