@@ -33,6 +33,7 @@ CI (`.github/workflows/ci.yml`) is the gate: `cargo fmt --all -- --check`,
 `cargo clippy --all-targets -- -D warnings`, `cargo test --locked` (includes
 `public_contract` and `visual_snapshots`), `scripts/check-source-hygiene.py`,
 `check-duplication.py`, `check-config-parity.py`, `check-module-budget.py`,
+`check-capabilities.py`, `test_check_capabilities.py`,
 `bash scripts/check-owned-runner-profiles.sh`,
 `python3 scripts/check-bench-workflow.py` (offline, inert cargo stub), and the
 pinned shared brand check ([usage](brand/README.md)).
