@@ -47,7 +47,7 @@ def check(case, response):
     except ET.ParseError:
         failures.append("invalid SVG XML")
     for expected in case["geometry"] + case["text"]:
-        if expected not in body:
+        if expected not in body and expected not in case.get("live_optional_text", []):
             failures.append(f"missing {expected!r}")
     if "temporarily unavailable" in body.lower():
         failures.append("upstream fallback card")
@@ -61,13 +61,18 @@ def probe(cases, base, fetcher=fetch, output=sys.stdout):
         passed, count = totals.get(dialect, (0, 0))
         url = target_url(base, case["url"])
         try:
-            failures = check(case, fetcher(url))
+            response = fetcher(url)
+            failures = check(case, response)
         except (ValueError, OSError, subprocess.TimeoutExpired) as error:
             failures = [str(error)]
         totals[dialect] = (passed + (not failures), count + 1)
         print(f"{'FAIL' if failures else 'PASS'} {dialect} {url}", file=output)
         for failure in failures:
             print(f"  {failure}", file=output)
+        if not failures:
+            for expected in case.get("live_optional_text", []):
+                if expected not in response[0]:
+                    print(f"  OPTIONAL upstream metric omitted: {expected}", file=output)
     for dialect, (passed, count) in sorted(totals.items()):
         print(f"{'PASS' if passed == count else 'FAIL'} {dialect}: {passed}/{count}",
               file=output)

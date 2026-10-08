@@ -177,7 +177,11 @@ bash scripts/probe-dialects.sh
 
 The probe changes only the host, preserves the original path and query, and
 checks HTTP 200, SVG content type and valid XML, plus every geometry/text
-assertion in `tests/corpus/readme-urls.json`. It prints PASS/FAIL for each URL
+assertion in `tests/corpus/readme-urls.json`, except the explicitly annotated
+live-optional GitHub metric labels: unknown stars/issues are intentionally
+omitted by the renderer and reported as OPTIONAL by the probe. The seeded
+in-process corpus test still requires those labels and guards the annotation
+allowlist. Titles and geometry remain mandatory. It prints PASS/FAIL for each URL
 and each dialect, and exits nonzero if any request fails or returns a
 "temporarily unavailable" fallback card. Requests are sequential, bounded to
 8 seconds each, and are neither retried nor authenticated. Unlike CI's seeded

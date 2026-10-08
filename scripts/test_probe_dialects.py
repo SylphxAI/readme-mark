@@ -52,6 +52,15 @@ class ProbeTests(unittest.TestCase):
         self.assertIn("FAIL shields: 0/1", output.getvalue())
         self.assertIn("PASS skill-icons: 1/1", output.getvalue())
 
+    def test_unknown_live_metrics_are_reported_not_invented(self):
+        case = dict(CASE, text=["REACT", "Total Stars Earned"],
+                    live_optional_text=["Total Stars Earned"])
+        output = io.StringIO()
+        self.assertEqual(probe.probe([case], "https://mark.sylphx.com", lambda _: GOOD, output), 0)
+        self.assertIn("OPTIONAL upstream metric omitted: Total Stars Earned", output.getvalue())
+        self.assertTrue(probe.check(case, (SVG.replace("REACT", "OTHER"), "200", "image/svg+xml")))
+        self.assertTrue(probe.check(case, (SVG.replace('height="28"', ''), "200", "image/svg+xml")))
+
     def test_all_pass_and_empty_fails(self):
         self.assertEqual(probe.probe([CASE], "https://mark.sylphx.com", lambda _: GOOD, io.StringIO()), 0)
         self.assertEqual(probe.probe([], "https://mark.sylphx.com", output=io.StringIO()), 1)
