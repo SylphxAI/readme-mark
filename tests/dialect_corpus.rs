@@ -15,6 +15,8 @@ struct Case {
     source: String,
     geometry: Vec<String>,
     text: Vec<String>,
+    #[serde(default)]
+    live_optional_text: Vec<String>,
 }
 
 #[tokio::test]
@@ -29,6 +31,15 @@ async fn readme_urls_render_after_only_changing_the_host() {
         assert!(urls.insert(case.url.clone()), "duplicate: {}", case.url);
         *dialects.entry(case.dialect.clone()).or_insert(0) += 1;
         assert!(!case.geometry.is_empty() && !case.text.is_empty());
+        // Live upstream metrics can be unknown; the seeded test still requires them.
+        for optional in &case.live_optional_text {
+            assert_eq!(case.dialect, "github-readme-stats");
+            assert!(case.text.contains(optional));
+            assert!(matches!(
+                optional.as_str(),
+                "Total Stars Earned" | "Total Issues"
+            ));
+        }
         // Fragments are browser metadata, not part of an HTTP request.
         let uri: Uri = case.url.split('#').next().unwrap().parse().unwrap();
         let path = uri.path_and_query().unwrap().as_str();
