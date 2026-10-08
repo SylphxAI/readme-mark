@@ -13,9 +13,7 @@
 		"zh-Hant": "一個網址生成 README 圖像：橫幅、徽章、圖示及 GitHub 統計卡。"
 	},
 	"external": "https://mark.sylphx.com",
-	"services": [
-		"Hosting"
-	],
+	"services": ["Hosting"],
 	"privacy": {
 		"updated": "2026-10-08",
 		"summary": {
