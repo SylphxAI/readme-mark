@@ -165,6 +165,9 @@ change the host:
 | `github-profile-trophy.vercel.app/?username=you` | `mark.sylphx.com/?username=you` |
 | `api.star-history.com/svg?repos=owner/repo` | `mark.sylphx.com/svg?repos=owner/repo` |
 
+For copyable before/after URLs from real READMEs, compatibility limits and rollback
+steps, see the [migration guide](docs/migrate.md).
+
 Or paste any of those URLs into the [studio](https://mark.sylphx.com) and edit it there.
 
 Verify the deployed host against all 50 pinned upstream README URLs with one
