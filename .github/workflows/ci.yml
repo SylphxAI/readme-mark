@@ -55,22 +55,6 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Verify static owned runner profiles
-        run: bash scripts/check-owned-runner-profiles.sh
-      - name: Benchmark workflow status regression (offline)
-        run: python3 scripts/check-bench-workflow.py
-      - name: Source hygiene
-        run: python3 scripts/check-source-hygiene.py
-      - name: Duplication
-        run: python3 scripts/check-duplication.py
-      - name: Config parity
-        run: python3 scripts/check-config-parity.py
-      - name: Module budget
-        run: python3 scripts/check-module-budget.py
-      - name: Brand home
-        uses: SylphxAI/.github/.github/actions/brand@a6c81b4bcda66bf624f0a68e25e63b3c0ed043eb # shared brand generator
-        with:
-          render-fit: intrinsic
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt

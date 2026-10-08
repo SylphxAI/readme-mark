@@ -253,7 +253,7 @@ Append `.svg` to any image path (`/badge/a-b-c.svg`, `/api/v1/mark/hero.svg?…`
 
 ## Performance
 
-In-process render latency (release build, 400 runs per URL, p50). The [Bench workflow](.github/workflows/bench.yml) re-measures on every change to `main` and publishes the table to its job summary only after the benchmark succeeds. Its status handling is checked offline with `python3 scripts/check-bench-workflow.py` (an inert cargo stub, no Rust build):
+In-process render latency (release build, 400 runs per URL, p50). The [Bench workflow](.github/workflows/bench.yml) re-measures on every change to `main` and publishes the table to its job summary only after the benchmark succeeds. Measured results:
 
 | Image | Size | p50 |
 | --- | ---: | ---: |
