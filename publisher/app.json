@@ -1,13 +1,21 @@
 {
 	"slug": "mark",
-	"name": { "en": "Mark", "zh-Hant": "Mark" },
-	"category": { "en": "Developer tools", "zh-Hant": "開發者工具" },
+	"name": {
+		"en": "Mark",
+		"zh-Hant": "Mark"
+	},
+	"category": {
+		"en": "Developer tools",
+		"zh-Hant": "開發者工具"
+	},
 	"tagline": {
 		"en": "README images from one URL: banners, badges, icons and GitHub stats cards.",
 		"zh-Hant": "一個網址生成 README 圖像：橫幅、徽章、圖示及 GitHub 統計卡。"
 	},
 	"external": "https://mark.sylphx.com",
-	"services": ["Hosting"],
+	"services": [
+		"Hosting"
+	],
 	"privacy": {
 		"updated": "2026-10-08",
 		"summary": {
@@ -16,7 +24,10 @@
 		},
 		"sections": [
 			{
-				"heading": { "en": "Request and URL data", "zh-Hant": "請求及網址資料" },
+				"heading": {
+					"en": "Request and URL data",
+					"zh-Hant": "請求及網址資料"
+				},
 				"body": [
 					{
 						"en": "When a browser or image proxy requests an image, our infrastructure receives the requested URL and technical request data, such as the IP address and HTTP headers. Mark logs request details, including the URL, for service operations. It uses the client IP address (an IPv6 /64 prefix for IPv6 clients) to limit upstream requests.",
@@ -29,7 +40,10 @@
 				]
 			},
 			{
-				"heading": { "en": "Public upstream data", "zh-Hant": "公開上游資料" },
+				"heading": {
+					"en": "Public upstream data",
+					"zh-Hant": "公開上游資料"
+				},
 				"body": [
 					{
 						"en": "Live cards and badges request public data from GitHub, npm, pub.dev, Packagist, Bundlephobia, the Chrome Web Store, PyPI, crates.io and Docker Hub. Endpoint badges fetch the public HTTPS JSON endpoint named in your URL. The relevant service receives the identifiers needed for that request from Mark's server; you do not supply a personal access token.",
@@ -38,7 +52,10 @@
 				]
 			},
 			{
-				"heading": { "en": "Purpose and lawful basis", "zh-Hant": "用途及法律依據" },
+				"heading": {
+					"en": "Purpose and lawful basis",
+					"zh-Hant": "用途及法律依據"
+				},
 				"body": [
 					{
 						"en": "We process these data to deliver and cache images, keep the service available and limit abuse. The lawful basis is our legitimate interests in operating a free public image service (UK GDPR Article 6(1)(f)).",
@@ -47,7 +64,10 @@
 				]
 			},
 			{
-				"heading": { "en": "Hosting and delivery", "zh-Hant": "託管及傳遞" },
+				"heading": {
+					"en": "Hosting and delivery",
+					"zh-Hant": "託管及傳遞"
+				},
 				"body": [
 					{
 						"en": "Our hosting infrastructure and Cloudflare content delivery network process requests to serve Mark. Cloudflare operates globally, so request data may be processed outside the UK under the safeguards required by UK law. We do not sell personal data or use it for advertising.",
@@ -56,7 +76,10 @@
 				]
 			},
 			{
-				"heading": { "en": "Caching and retention", "zh-Hant": "快取及保留" },
+				"heading": {
+					"en": "Caching and retention",
+					"zh-Hant": "快取及保留"
+				},
 				"body": [
 					{
 						"en": "Mark keeps bounded in-memory caches of live upstream data. Fresh lifetimes depend on the data, from five minutes for workflow status to 24 hours for star history; stale data may be served on upstream failure for up to 14 days. Static images have public browser and CDN cache headers of up to one year. Live image responses have browser cache headers of 30 minutes and shared-cache headers of four hours, with stale-on-error caching of up to seven days. Copies outside Mark may persist independently.",
@@ -69,7 +92,10 @@
 				]
 			},
 			{
-				"heading": { "en": "Privacy requests and changes", "zh-Hant": "私隱查詢及更新" },
+				"heading": {
+					"en": "Privacy requests and changes",
+					"zh-Hant": "私隱查詢及更新"
+				},
 				"body": [
 					{
 						"en": "For a privacy request, email hi@sylphx.com with the image URL and enough context to identify the request, without sending secrets. Since Mark has no accounts, an account name alone cannot locate request data. We may update this notice; the date above identifies this version.",
@@ -83,24 +109,54 @@
 		"email": "hi@sylphx.com",
 		"faq": [
 			{
-				"q": { "en": "Do I need an account, payment or a token?", "zh-Hant": "我需要帳戶、付款或權杖嗎？" },
-				"a": { "en": "No. Mark is free and needs no sign-up or personal access token. Open https://mark.sylphx.com, create an image URL and embed it in your README or site.", "zh-Hant": "不需要。Mark 免費，無需註冊或個人存取權杖。開啟 https://mark.sylphx.com，建立圖像網址並嵌入 README 或網站即可。" }
+				"q": {
+					"en": "Do I need an account, payment or a token?",
+					"zh-Hant": "我需要帳戶、付款或權杖嗎？"
+				},
+				"a": {
+					"en": "No. Mark is free and needs no sign-up or personal access token. Open https://mark.sylphx.com, create an image URL and embed it in your README or site.",
+					"zh-Hant": "不需要。Mark 免費，無需註冊或個人存取權杖。開啟 https://mark.sylphx.com，建立圖像網址並嵌入 README 或網站即可。"
+				}
 			},
 			{
-				"q": { "en": "Can I reuse an existing README image URL?", "zh-Hant": "我可以沿用現有的 README 圖像網址嗎？" },
-				"a": { "en": "For supported Shields, capsule-render, skill-icons, readme-typing-svg and GitHub card URL formats, keep the path and query and change the host to mark.sylphx.com. See https://mark.sylphx.com/docs for supported routes. Unimplemented badge routes return an unsupported badge, not live data.", "zh-Hant": "對於支援的 Shields、capsule-render、skill-icons、readme-typing-svg 及 GitHub 統計卡網址格式，保留路徑和查詢參數，將主機改為 mark.sylphx.com。支援的路徑見 https://mark.sylphx.com/docs。尚未實作的徽章路徑會傳回 unsupported 徽章，而非即時資料。" }
+				"q": {
+					"en": "Can I reuse an existing README image URL?",
+					"zh-Hant": "我可以沿用現有的 README 圖像網址嗎？"
+				},
+				"a": {
+					"en": "For supported Shields, capsule-render, skill-icons, readme-typing-svg and GitHub card URL formats, keep the path and query and change the host to mark.sylphx.com. See https://mark.sylphx.com/docs for supported routes. Unimplemented badge routes return an unsupported badge, not live data.",
+					"zh-Hant": "對於支援的 Shields、capsule-render、skill-icons、readme-typing-svg 及 GitHub 統計卡網址格式，保留路徑和查詢參數，將主機改為 mark.sylphx.com。支援的路徑見 https://mark.sylphx.com/docs。尚未實作的徽章路徑會傳回 unsupported 徽章，而非即時資料。"
+				}
 			},
 			{
-				"q": { "en": "Why is a live card stale or temporarily unavailable?", "zh-Hant": "為何即時統計卡的資料過時或暫時無法使用？" },
-				"a": { "en": "Live data is cached. If an upstream is slow, unavailable or rate-limited, Mark can serve stale data; without a usable cache it renders a fallback image. Mark reads public data, not private repositories through your personal token.", "zh-Hant": "即時資料會被快取。當上游速度慢、無法使用或受到流量限制時，Mark 可提供舊資料；沒有可用快取時則產生備用圖像。Mark 讀取公開資料，不會使用你的個人權杖讀取私人儲存庫。" }
+				"q": {
+					"en": "Why is a live card stale or temporarily unavailable?",
+					"zh-Hant": "為何即時統計卡的資料過時或暫時無法使用？"
+				},
+				"a": {
+					"en": "Live data is cached. If an upstream is slow, unavailable or rate-limited, Mark can serve stale data; without a usable cache it renders a fallback image. Mark reads public data, not private repositories through your personal token.",
+					"zh-Hant": "即時資料會被快取。當上游速度慢、無法使用或受到流量限制時，Mark 可提供舊資料；沒有可用快取時則產生備用圖像。Mark 讀取公開資料，不會使用你的個人權杖讀取私人儲存庫。"
+				}
 			},
 			{
-				"q": { "en": "How do I change or remove an image?", "zh-Hant": "如何更改或移除圖像？" },
-				"a": { "en": "Edit the URL parameters to create a new image, or remove the embed from the README or site you control. Mark does not save images in an account. Browsers, image proxies and CDNs may retain old copies; removing an embed does not purge their caches.", "zh-Hant": "修改網址參數以建立新圖像，或從你管理的 README 或網站移除嵌入內容。Mark 不會在帳戶中儲存圖像。瀏覽器、圖像代理和 CDN 可能保留舊副本；移除嵌入內容不會清除它們的快取。" }
+				"q": {
+					"en": "How do I change or remove an image?",
+					"zh-Hant": "如何更改或移除圖像？"
+				},
+				"a": {
+					"en": "Edit the URL parameters to create a new image, or remove the embed from the README or site you control. Mark does not save images in an account. Browsers, image proxies and CDNs may retain old copies; removing an embed does not purge their caches.",
+					"zh-Hant": "修改網址參數以建立新圖像，或從你管理的 README 或網站移除嵌入內容。Mark 不會在帳戶中儲存圖像。瀏覽器、圖像代理和 CDN 可能保留舊副本；移除嵌入內容不會清除它們的快取。"
+				}
 			},
 			{
-				"q": { "en": "How do I report a problem?", "zh-Hant": "如何回報問題？" },
-				"a": { "en": "Email hi@sylphx.com with the image URL, where it appears, what you expected and what happened. Do not send access tokens or other secrets. Documentation is at https://mark.sylphx.com/docs and source code is at https://github.com/SylphxAI/readme-mark.", "zh-Hant": "請電郵至 hi@sylphx.com，提供圖像網址、出現位置、預期結果及實際情況。請勿傳送存取權杖或其他秘密。文件位於 https://mark.sylphx.com/docs，原始碼位於 https://github.com/SylphxAI/readme-mark。" }
+				"q": {
+					"en": "How do I report a problem?",
+					"zh-Hant": "如何回報問題？"
+				},
+				"a": {
+					"en": "Email hi@sylphx.com with the image URL, where it appears, what you expected and what happened. Do not send access tokens or other secrets. Documentation is at https://mark.sylphx.com/docs and source code is at https://github.com/SylphxAI/readme-mark.",
+					"zh-Hant": "請電郵至 hi@sylphx.com，提供圖像網址、出現位置、預期結果及實際情況。請勿傳送存取權杖或其他秘密。文件位於 https://mark.sylphx.com/docs，原始碼位於 https://github.com/SylphxAI/readme-mark。"
+				}
 			}
 		]
 	},
