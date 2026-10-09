@@ -33,7 +33,7 @@
 					},
 					{
 						"en": "Text, usernames, repository names, package names and endpoint URLs you include are used to render the image. Images and their URLs can be public and cached by browsers, proxies and CDNs. Do not put secrets or private information in an image URL.",
-						"zh-Hant": "你提供的文字、使用者名稱、儲存庫名稱、套件名稱及端點網址會用於產生圖像。圖像及其網址可能公開，並由瀏覽器、代理和 CDN 快取。請勿在圖像網址中放入秘密或私人資料。"
+						"zh-Hant": "你提供的文字、使用者名稱、儲存庫名稱、套件名稱及端點網址會用於產生圖像。圖像及其網址可能公開，並由瀏覽器、代理和 CDN 快取。請勿在圖像網址中放入祕密或私人資料。"
 					}
 				]
 			},
@@ -97,7 +97,7 @@
 				"body": [
 					{
 						"en": "For a privacy request, email hi@sylphx.com with the image URL and enough context to identify the request, without sending secrets. Since Mark has no accounts, an account name alone cannot locate request data. We may update this notice; the date above identifies this version.",
-						"zh-Hant": "如有私隱查詢，請電郵至 hi@sylphx.com，提供圖像網址及足以識別請求的背景資料，請勿傳送秘密。由於 Mark 沒有帳戶，單憑帳戶名稱無法找到請求資料。我們可能更新本通知；上方日期標示此版本。"
+						"zh-Hant": "如有私隱查詢，請電郵至 hi@sylphx.com，提供圖像網址及足以識別請求的背景資料，請勿傳送祕密。由於 Mark 沒有帳戶，單憑帳戶名稱無法找到請求資料。我們可能更新本通知；上方日期標示此版本。"
 					}
 				]
 			}
@@ -153,7 +153,7 @@
 				},
 				"a": {
 					"en": "Email hi@sylphx.com with the image URL, where it appears, what you expected and what happened. Do not send access tokens or other secrets. Documentation is at https://mark.sylphx.com/docs and source code is at https://github.com/SylphxAI/readme-mark.",
-					"zh-Hant": "請電郵至 hi@sylphx.com，提供圖像網址、出現位置、預期結果及實際情況。請勿傳送存取權杖或其他秘密。文件位於 https://mark.sylphx.com/docs，原始碼位於 https://github.com/SylphxAI/readme-mark。"
+					"zh-Hant": "請電郵至 hi@sylphx.com，提供圖像網址、出現位置、預期結果及實際情況。請勿傳送存取權杖或其他祕密。文件位於 https://mark.sylphx.com/docs，原始碼位於 https://github.com/SylphxAI/readme-mark。"
 				}
 			}
 		]
