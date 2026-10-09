@@ -486,10 +486,7 @@ fn same_spec_renders_same_svg_forever() {
 #[test]
 fn pill_and_deploy_paint_from_the_geometry_authority() {
     // Fixture: the shields text group (font family, size) and baselines have
-    // exactly one owner (`domain/pill.rs`), and
-    // `scripts/check-source-hygiene.py` forbids the attribute literals in the
-    // pill/deploy forms. A re-introduced local copy fails the gate; a value
-    // shift fails this fixture.
+    // exactly one owner (`domain/pill.rs`). A value shift fails this fixture.
     let flat = render(&MarkSpec {
         form: MarkForm::Pill,
         pill: mark::capabilities::mark::domain::PillSpec {
