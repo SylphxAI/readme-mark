@@ -15,6 +15,41 @@ struct Case {
     source: String,
     geometry: Vec<String>,
     text: Vec<String>,
+    #[serde(default)]
+    live_optional_text: Vec<String>,
+}
+
+#[test]
+fn migration_guide_examples_are_host_only_corpus_urls() {
+    let cases: Vec<Case> = serde_json::from_str(include_str!("corpus/readme-urls.json")).unwrap();
+    let guide = include_str!("../docs/migrate.md");
+    let mut dialects = BTreeSet::new();
+    let mut urls = BTreeSet::new();
+    for row in guide.lines().filter(|line| line.starts_with("| `https://")) {
+        let (before, rest) = row
+            .strip_prefix("| `")
+            .unwrap()
+            .split_once("` | <")
+            .unwrap();
+        let after = rest.strip_suffix("> |").unwrap();
+        let case = cases
+            .iter()
+            .find(|case| case.url == before)
+            .unwrap_or_else(|| panic!("migration example missing from corpus: {before}"));
+        let (_, path) = before
+            .strip_prefix("https://")
+            .unwrap()
+            .split_once('/')
+            .unwrap();
+        assert_eq!(after, format!("https://mark.sylphx.com/{path}"));
+        assert!(urls.insert(before), "duplicate migration example: {before}");
+        dialects.insert(case.dialect.as_str());
+    }
+    assert_eq!(
+        dialects,
+        cases.iter().map(|case| case.dialect.as_str()).collect()
+    );
+    assert!(include_str!("../README.md").contains("[migration guide](docs/migrate.md)"));
 }
 
 #[tokio::test]
@@ -29,6 +64,15 @@ async fn readme_urls_render_after_only_changing_the_host() {
         assert!(urls.insert(case.url.clone()), "duplicate: {}", case.url);
         *dialects.entry(case.dialect.clone()).or_insert(0) += 1;
         assert!(!case.geometry.is_empty() && !case.text.is_empty());
+        // Live upstream metrics can be unknown; the seeded test still requires them.
+        for optional in &case.live_optional_text {
+            assert_eq!(case.dialect, "github-readme-stats");
+            assert!(case.text.contains(optional));
+            assert!(matches!(
+                optional.as_str(),
+                "Total Stars Earned" | "Total Issues"
+            ));
+        }
         // Fragments are browser metadata, not part of an HTTP request.
         let uri: Uri = case.url.split('#').next().unwrap().parse().unwrap();
         let path = uri.path_and_query().unwrap().as_str();
