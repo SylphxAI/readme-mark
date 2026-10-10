@@ -7,7 +7,7 @@
 //!   fingerprint, and the work intake files one item for it (a repeat while it
 //!   is open is a note; a return after it closed is a regression).
 //! - `event=mark.image.ok|failed severity=info`: one line per finished image
-//!   request, the events of the `mark-image-success` SLO.
+//!   request, consumed by the generic `product-journey-success` SLO.
 //!
 //! A line carries only enumerated values: the kind, a subject taken from the
 //! route table, an upstream name the code names, an HTTP status and the
@@ -102,7 +102,8 @@ fn release() -> &'static str {
 /// upstream name, an HTTP status, a fixed reason name), never free text.
 pub fn issue(kind: Kind, subject: &str, code: &str) {
     let event = fingerprint(kind, subject);
-    tracing::info!(event = %event, severity = "info", code, release = release(), "issue");
+    // Request spans contain URI/query values; signals must not inherit them.
+    tracing::info!(parent: None, event = %event, severity = "info", code, release = release(), "issue");
 }
 
 /// The journey line of one finished image request.
@@ -113,6 +114,7 @@ fn journey(ok: bool, status: u16) {
         "mark.image.failed"
     };
     tracing::info!(
+        parent: None,
         event,
         severity = "info",
         status,
@@ -125,17 +127,33 @@ fn journey(ok: bool, status: u16) {
 /// line, and a 5xx reports `turn_failed` for the route's template -- never the
 /// path's own ids, which the matched template already drops.
 pub async fn observe(req: Request, next: Next) -> Response {
-    let subject = req
-        .extensions()
-        .get::<MatchedPath>()
-        .map(|p| route_subject(p.as_str()))
-        .unwrap_or_default();
+    let route = req.extensions().get::<MatchedPath>().cloned();
+    let path = req.uri().path();
+    let image_route = path == "/svg"
+        || crate::interfaces::http::IMAGE_ROUTE_PREFIXES
+            .iter()
+            .any(|prefix| {
+                path.strip_prefix(prefix)
+                    .is_some_and(|rest| rest.is_empty() || rest.starts_with('/'))
+            });
+    let mixed_route = matches!(path, "/" | "/api");
     let r = next.run(req).await;
     let status = r.status().as_u16();
     if status >= 500 {
+        let subject = route
+            .as_ref()
+            .map(|p| route_subject(p.as_str()))
+            .unwrap_or_default();
         issue(Kind::TurnFailed, &subject, &status.to_string());
     }
-    journey(status < 500, status);
+    let mixed_image = mixed_route
+        && (r.status() == axum::http::StatusCode::NOT_MODIFIED
+            || r.headers()
+                .get(axum::http::header::CONTENT_TYPE)
+                .is_some_and(|v| v.as_bytes().starts_with(b"image/svg+xml")));
+    if image_route || mixed_image {
+        journey(status < 500, status);
+    }
     r
 }
 
@@ -226,6 +244,7 @@ mod tests {
 
         let app = axum::Router::new()
             .route("/badge/{*tail}", get(|| async { "ok" }))
+            .route("/health", get(|| async { "healthy" }))
             .route(
                 "/api/v1/card/{kind}",
                 get(
@@ -253,6 +272,7 @@ mod tests {
                 .unwrap();
         }
         app.clone().oneshot(call("/badge/a-b-c")).await.unwrap();
+        app.clone().oneshot(call("/health")).await.unwrap();
 
         let out = String::from_utf8(cap.0.lock().unwrap().clone()).unwrap();
         assert_eq!(
@@ -272,5 +292,81 @@ mod tests {
         );
         // a parameter never reaches a line: the route template is the subject
         assert!(!out.contains("boom"), "{out}");
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn image_dialects_and_conditional_responses_count_but_pages_do_not() {
+        use tower::ServiceExt;
+
+        let cap = Capture::default();
+        let w = cap.clone();
+        let sub = tracing_subscriber::fmt()
+            .with_ansi(false)
+            .with_writer(move || w.clone())
+            .finish();
+        let _g = tracing::subscriber::set_default(sub);
+        let app = crate::app(crate::AppState::for_tests());
+        for path in ["/health", "/", "/api", "/api/v1/catalog", "/docs"] {
+            app.clone()
+                .oneshot(
+                    axum::http::Request::builder()
+                        .uri(path)
+                        .body(axum::body::Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+        }
+        assert!(events(&String::from_utf8(cap.0.lock().unwrap().clone()).unwrap()).is_empty());
+        for path in ["/badge/a-b-c.svg", "/?lines=Hello", "/api?type=waving"] {
+            let response = app
+                .clone()
+                .oneshot(
+                    axum::http::Request::builder()
+                        .uri(path)
+                        .body(axum::body::Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            let etag = response.headers()[axum::http::header::ETAG].clone();
+            assert_eq!(response.status(), axum::http::StatusCode::OK);
+            let conditional = app
+                .clone()
+                .oneshot(
+                    axum::http::Request::builder()
+                        .uri(path)
+                        .header(axum::http::header::IF_NONE_MATCH, etag)
+                        .body(axum::body::Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(conditional.status(), axum::http::StatusCode::NOT_MODIFIED);
+        }
+        let out = String::from_utf8(cap.0.lock().unwrap().clone()).unwrap();
+        assert_eq!(events(&out), vec!["mark.image.ok"; 6], "{out}");
+        cap.0.lock().unwrap().clear();
+        let fallback = app
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/github/stars/offline/repo?label=signal-private-text")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(fallback.status(), axum::http::StatusCode::OK);
+        let out = String::from_utf8(cap.0.lock().unwrap().clone()).unwrap();
+        assert_eq!(
+            events(&out),
+            ["mark.issue.tool_failed.repo", "mark.image.ok"]
+        );
+        for line in out.lines().filter(|l| l.contains("mark::signals:")) {
+            assert!(
+                !line.contains("offline") && !line.contains("signal-private-text"),
+                "{line}"
+            );
+        }
     }
 }
