@@ -165,7 +165,34 @@ change the host:
 | `github-profile-trophy.vercel.app/?username=you` | `mark.sylphx.com/?username=you` |
 | `api.star-history.com/svg?repos=owner/repo` | `mark.sylphx.com/svg?repos=owner/repo` |
 
+For copyable before/after URLs from real READMEs, compatibility limits and rollback
+steps, see the [migration guide](docs/migrate.md).
+
 Or paste any of those URLs into the [studio](https://mark.sylphx.com) and edit it there.
+
+Verify the deployed host against all 50 pinned upstream README URLs with one
+command (requires only curl and Python 3, no token):
+
+```sh
+bash scripts/probe-dialects.sh
+# Optional: bash scripts/probe-dialects.sh https://your-mark-host.example
+```
+
+The probe changes only the host, preserves the original path and query, and
+checks HTTP 200, SVG content type and valid XML, plus every geometry/text
+assertion in `tests/corpus/readme-urls.json`, except the explicitly annotated
+live-optional GitHub metric labels: unknown stars/issues are intentionally
+omitted by the renderer and reported as OPTIONAL by the probe. The seeded
+in-process corpus test still requires those labels and guards the annotation
+allowlist. Titles and geometry remain mandatory. It prints PASS/FAIL for each URL
+and each dialect, and exits nonzero if any request fails or returns a
+"temporarily unavailable" fallback card. Requests are sequential, bounded to
+8 seconds each, and are neither retried nor authenticated. Unlike CI's seeded
+GitHub data, this readback checks live cards, so upstream outages or rate
+limits fail the probe rather than masquerading as parity. CI runs the probe's
+offline regressions; live probing is an explicit deployment readback, not a
+network-dependent merge gate. Latency measurement remains in
+`scripts/measure-live.sh`.
 
 ## Why Mark
 

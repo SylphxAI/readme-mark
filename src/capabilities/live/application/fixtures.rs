@@ -94,7 +94,11 @@ pub(crate) fn calendar_html() -> String {
 }
 
 fn answer(call: &Call, token: bool) -> Result<Reply, UpstreamError> {
-    let url = call.url.as_str();
+    // The real README corpus keeps its original username. Reuse synthetic
+    // counters for that subject so its cards are tested offline, not fallbacks.
+    let corpus_user = call.url.contains("/users/anuraghazra");
+    let corpus_url = call.url.replace("/users/anuraghazra", "/users/ada-dev");
+    let url = corpus_url.as_str();
     if url.contains("offline") || call.body.as_deref().is_some_and(|b| b.contains("offline")) {
         return Err(UpstreamError::Timeout);
     }
@@ -127,6 +131,11 @@ fn answer(call: &Call, token: bool) -> Result<Reply, UpstreamError> {
         Resource::Search if url.contains("type%3Apr") => body(r#"{"total_count":142}"#),
         Resource::Search if url.contains("type%3Aissue") => body(r#"{"total_count":37}"#),
         Resource::Core => match url.trim_start_matches("https://api.github.com") {
+            "/users/ada-dev" if corpus_user => body(
+                &PROFILE
+                    .replace("ada-dev", "anuraghazra")
+                    .replace("Ada Lovelace", "Anurag Hazra"),
+            ),
             "/users/ada-dev" => body(PROFILE),
             u if u.starts_with("/users/ada-dev/repos?") && u.ends_with("page=1") => body(REPOS),
             "/repos/SylphxAI/mark" => body(REPO),
