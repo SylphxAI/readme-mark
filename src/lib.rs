@@ -11,6 +11,7 @@
 pub mod bootstrap;
 pub mod capabilities;
 pub mod interfaces;
+pub mod signals;
 
 pub use bootstrap::AppState;
 pub use interfaces::http::app;

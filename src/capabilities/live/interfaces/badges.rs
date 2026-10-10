@@ -46,7 +46,12 @@ pub(super) fn from_lookup<T>(
     match lookup {
         Lookup::Found(v) => (ok(v), CachePolicy::Live),
         Lookup::Missing => (badges::not_found(label, what), CachePolicy::Fallback),
-        Lookup::Unavailable => (badges::unavailable(label), CachePolicy::Fallback),
+        Lookup::Unavailable => {
+            // A live upstream read failed: the card falls back, and the
+            // failure is one `tool_failed` occurrence for that upstream.
+            crate::signals::issue(crate::signals::Kind::ToolFailed, what, "unavailable");
+            (badges::unavailable(label), CachePolicy::Fallback)
+        }
     }
 }
 
