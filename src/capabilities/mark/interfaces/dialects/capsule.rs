@@ -7,7 +7,7 @@
 //! descAlignY 60, color `B897FF`, animation `fadeIn`.
 //!
 //! ADR-0005 decision 4: the typography knobs ADR-0003 retired live here and
-//! only here; `scripts/check-source-hygiene.py` exempts exactly this file.
+//! only here.
 //!
 //! Determinism: capsule-render picks `random`/`auto`/`gradient` colors with
 //! `Math.random()` and `timeAuto`/`timeGradient` from the clock. Here every

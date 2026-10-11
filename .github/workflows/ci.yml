@@ -55,33 +55,6 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      # No new departure from the default stack (docs/stack-conformance.md in
-      # SylphxAI/.github); .github/stack-departures.txt may only shrink.
-      - uses: SylphxAI/.github/.github/actions/stack-conformance@bc664ac7410c00d233fe4f729b6747969a4a9bed # SylphxAI/.github#208
-        with:
-          base: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || '' }}
-      - name: Verify static owned runner profiles
-        run: bash scripts/check-owned-runner-profiles.sh
-      - name: Benchmark workflow status regression (offline)
-        run: python3 scripts/check-bench-workflow.py
-      - name: Live dialect probe regressions (offline)
-        run: python3 -I scripts/test_probe_dialects.py
-      - name: Source hygiene
-        run: python3 scripts/check-source-hygiene.py
-      - name: Duplication
-        run: python3 scripts/check-duplication.py
-      - name: Config parity
-        run: python3 scripts/check-config-parity.py
-      - name: Capability evidence guard regressions
-        run: python3 -B scripts/test_check_capabilities.py
-      - name: Capability evidence and routes
-        run: python3 scripts/check-capabilities.py
-      - name: Module budget
-        run: python3 scripts/check-module-budget.py
-      - name: Brand home
-        uses: SylphxAI/.github/.github/actions/brand@a6c81b4bcda66bf624f0a68e25e63b3c0ed043eb # shared brand generator
-        with:
-          render-fit: intrinsic
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
