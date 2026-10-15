@@ -107,3 +107,17 @@ jobs:
           fetch-depth: 0
       - name: Non-v7 ids on added lines (owner standards/identifiers.md)
         uses: SylphxAI/.github/.github/actions/identifiers@e4a5ea41cbcc87cd93914f89f0d7c3981c868bf9
+
+  # The org-wide required check name. Skipped lanes pass; a failed or
+  # cancelled lane fails. GitHub-hosted only: this is a public repository, so a
+  # self-hosted runner would accept fork pull requests' code
+  # (scripts/check-owned-runner-profiles.sh).
+  ci-ok:
+    if: always()
+    needs: [changes, rust, identifiers]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: SylphxAI/.github/.github/actions/needs-pass@46ec433892bca8693193049b5ee7441bb916a7ad # main
+        with:
+          needs: ${{ toJSON(needs) }}
