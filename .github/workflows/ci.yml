@@ -107,3 +107,19 @@ jobs:
           fetch-depth: 0
       - name: Non-v7 ids on added lines (owner standards/identifiers.md)
         uses: SylphxAI/.github/.github/actions/identifiers@e4a5ea41cbcc87cd93914f89f0d7c3981c868bf9
+
+  # The org-wide required check name. Skipped lanes pass; a failed or
+  # cancelled lane fails.
+  ci-ok:
+    if: always()
+    needs: [changes, rust, identifiers]
+    # The reserved gate pool (Kueue queue scale-set-gate, never lends): an
+    # `if: always()` verdict still runs after its run is cancelled, and that run
+    # keeps its concurrency group until it does, so on a busy build pool a
+    # superseded run held the next one (SylphxAI/agents#4222, 2026-10-02).
+    runs-on: sylphx-linux-control
+    timeout-minutes: 5
+    steps:
+      - uses: SylphxAI/.github/.github/actions/needs-pass@46ec433892bca8693193049b5ee7441bb916a7ad # main
+        with:
+          needs: ${{ toJSON(needs) }}
