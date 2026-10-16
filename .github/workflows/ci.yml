@@ -108,13 +108,30 @@ jobs:
       - name: Non-v7 ids on added lines (owner standards/identifiers.md)
         uses: SylphxAI/.github/.github/actions/identifiers@e4a5ea41cbcc87cd93914f89f0d7c3981c868bf9
 
+  # Added lines send chat through Notify, never a direct chat-API host
+  # (api.telegram.org, hooks.slack.com, slack.com/api/chat.postMessage,
+  # discord.com/api/webhooks, discordapp.com/api/webhooks). The shared action
+  # owns its allow-list; the pin is fixed here so a moved tag cannot change the
+  # check. fetch-depth 0 gives the action the base history it diffs against.
+  chat-senders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Added lines send chat through Notify
+        uses: SylphxAI/.github/.github/actions/chat-senders@5cfd55a41435cca8e4b7caf6506faf04ca08d200
+        with:
+          mode: fail
+
   # The org-wide required check name. Skipped lanes pass; a failed or
   # cancelled lane fails. GitHub-hosted only: this is a public repository, so a
   # self-hosted runner would accept fork pull requests' code
   # (scripts/check-owned-runner-profiles.sh).
   ci-ok:
     if: always()
-    needs: [changes, rust, identifiers]
+    needs: [changes, rust, identifiers, chat-senders]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
