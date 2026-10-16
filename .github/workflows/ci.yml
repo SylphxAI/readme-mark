@@ -108,11 +108,10 @@ jobs:
       - name: Non-v7 ids on added lines (owner standards/identifiers.md)
         uses: SylphxAI/.github/.github/actions/identifiers@e4a5ea41cbcc87cd93914f89f0d7c3981c868bf9
 
-  # Added lines send chat through Notify, never a direct chat-API host
-  # (api.telegram.org, hooks.slack.com, slack.com/api/chat.postMessage,
-  # discord.com/api/webhooks, discordapp.com/api/webhooks). The shared action
-  # owns its allow-list; the pin is fixed here so a moved tag cannot change the
-  # check. fetch-depth 0 gives the action the base history it diffs against.
+  # Added lines send chat through Notify, never a direct chat-API host. The
+  # shared action owns the host list and its allow-list; the pin is fixed here
+  # so a moved tag cannot change the check. fetch-depth 0 gives the action the
+  # base history it diffs against.
   chat-senders:
     runs-on: ubuntu-latest
     timeout-minutes: 5
