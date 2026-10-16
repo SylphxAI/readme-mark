@@ -301,6 +301,13 @@ Live measurement from a server in Europe with [`scripts/measure-live.sh`](script
 
 Use the `.svg` form to be served from the edge. Both forms return identical bytes with a strong `ETag`, and `If-None-Match` returns `304`.
 
+## Quality signals
+
+The [image-success journey declaration and issue runbook](docs/quality-signals.md)
+live with this product. Mark emits image outcomes and bounded issue fingerprints;
+the platform's generic journey SLO and Work intake consume them without a
+Mark-specific rule in infra.
+
 ## Self-hosting
 
 ```bash
