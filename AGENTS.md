@@ -36,8 +36,9 @@ CI (`.github/workflows/ci.yml`) is the gate: `cargo fmt --all -- --check`,
 `check-capabilities.py`, `test_check_capabilities.py`,
 `python3 -I scripts/test_probe_dialects.py` (offline live-probe regressions),
 `bash scripts/check-owned-runner-profiles.sh`,
-`python3 scripts/check-bench-workflow.py` (offline, inert cargo stub), and the
-pinned shared brand check ([usage](brand/README.md)).
+`python3 scripts/check-bench-workflow.py` (offline, inert cargo stub), the
+`chat-senders` lane (pinned shared action; added lines must send chat through
+Notify), and the pinned shared brand check ([usage](brand/README.md)).
 After a reviewed visual change, refresh with
 `UPDATE_SNAPSHOTS=1 cargo test --test visual_snapshots`.
 
