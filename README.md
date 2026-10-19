@@ -280,7 +280,7 @@ Append `.svg` to any image path (`/badge/a-b-c.svg`, `/api/v1/mark/hero.svg?…`
 
 ## Performance
 
-In-process render latency (release build, 400 runs per URL, p50). The [Bench workflow](.github/workflows/bench.yml) re-measures on every change to `main` and publishes the table to its job summary only after the benchmark succeeds. Its status handling is checked offline with `python3 scripts/check-bench-workflow.py` (an inert cargo stub, no Rust build):
+In-process render latency (release build, 400 runs per URL, p50). The [Bench workflow](.github/workflows/bench.yml) re-measures on every change to `main` and publishes the table to its job summary only after the benchmark succeeds. Measured results:
 
 | Image | Size | p50 |
 | --- | ---: | ---: |
@@ -300,6 +300,13 @@ Live measurement from a server in Europe with [`scripts/measure-live.sh`](script
 | `/api/v1/mark/strip?icons=rust,ts,docker` | 57 ms | `DYNAMIC` (origin) |
 
 Use the `.svg` form to be served from the edge. Both forms return identical bytes with a strong `ETag`, and `If-None-Match` returns `304`.
+
+## Quality signals
+
+The [image-success journey declaration and issue runbook](docs/quality-signals.md)
+live with this product. Mark emits image outcomes and bounded issue fingerprints;
+the platform's generic journey SLO and Work intake consume them without a
+Mark-specific rule in infra.
 
 ## Self-hosting
 

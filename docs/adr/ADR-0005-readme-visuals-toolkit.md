@@ -72,8 +72,7 @@ Mark renders good SVG, but almost nobody can find it or switch to it:
      card and a short cache, never a broken image.
    - Responses cache for hours, not forever:
      `s-maxage` plus `stale-while-revalidate` and `stale-if-error`.
-   The clock ban in `scripts/check-source-hygiene.py` stays in force for
-   every module except the live capability, which needs TTLs.
+   Only the live capability reads the clock, for TTLs.
 6. **Brand icons are content.** Simple Icons (CC0 path data) supplies
    thousands of brand glyphs for badge logos and tech-icon tiles. A user
    choosing `logo=rust` is content, just like `text=`. The rule from
