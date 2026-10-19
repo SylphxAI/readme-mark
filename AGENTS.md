@@ -31,7 +31,10 @@ paths: [docs/capabilities.md](docs/capabilities.md). Decision of record:
 
 CI (`.github/workflows/ci.yml`) is the gate: `cargo fmt --all -- --check`,
 `cargo clippy --all-targets -- -D warnings`, `cargo test --locked` (includes
-`public_contract` and `visual_snapshots`).
+`public_contract` and `visual_snapshots`), the
+`chat-senders` lane (pinned shared action; added lines must send chat through
+Notify), and the pinned shared `identifiers` lane (owner
+standards/identifiers.md).
 After a reviewed visual change, refresh with
 `UPDATE_SNAPSHOTS=1 cargo test --test visual_snapshots`.
 
