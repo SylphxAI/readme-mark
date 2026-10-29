@@ -560,7 +560,21 @@ function qs(vals, keys, opt){
     if (v === undefined || v === null || v === "") continue;
     if (sd[k] !== undefined && String(v) === String(sd[k])) continue;
     if (k === "color" && themed) continue;
-    if (k === "lines") v = String(v).split("\n").map(x => x.trim()).filter(Boolean).join(";");
+    if (k === "lines") {
+      const lines = String(v).split("\n").map(x => x.trim()).filter(Boolean);
+      let separator = state.extra.separator || ";";
+      // A semicolon in literal text (including &amp;) is not a line break.
+      // Use the renderer's existing separator parameter, choosing one that
+      // cannot occur within or across these lines. Ordinary URLs stay short.
+      const roundtrips = s => !lines.length || JSON.stringify(lines.join(s).split(s)) === JSON.stringify(lines);
+      if (!roundtrips(separator)) {
+        separator = "|";
+        let code = 0x241e;
+        while (!roundtrips(separator)) separator = String.fromCodePoint(code++);
+      }
+      if (separator !== ";") q.set("separator", separator);
+      v = lines.join(separator);
+    }
     else if (k === "text" && state.kind === "banner") v = String(v).replace(/\n/g, "-nl-");
     q.set(k, String(v));
   }
@@ -839,7 +853,6 @@ function importUrl(raw){
   } else if (path === "/static/v1") { kind = "badge"; r = take(kind); }
   else if (path === "/typing" || (path === "/" && p.has("lines"))) {
     kind = "typing"; r = take(kind);
-    if (r.vals.lines) r.vals.lines = r.vals.lines.split(p.get("separator") || ";").join("\n");
   }
   else if (path === "/icons") { kind = "icons"; r = take(kind); if (!r.vals.i && p.has("icons")) { r.vals.i = p.get("icons"); delete r.extra.icons; } }
   else if (path === "/streak" || (path === "/" && p.has("user"))) { kind = "stats"; r = take(kind); r.vals.card = "streak"; r.vals.username = p.get("user") || ""; delete r.extra.user; }
@@ -856,6 +869,7 @@ function importUrl(raw){
     if (kind === "banner" && r.vals.text) r.vals.text = decodeText(r.vals.text);
     if (form === "strip" && p.has("icons")) { r.vals.i = p.get("icons"); delete r.extra.icons; }
   } else return null;
+  if (kind === "typing" && r.vals.lines) r.vals.lines = r.vals.lines.split(p.get("separator") || ";").join("\n");
   // Host-swapped dialect URLs keep their unknown params verbatim so the render
   // matches the original; our own URLs never need them.
   return { kind, vals:r.vals, extra:r.extra, from: from ? from.name : null };

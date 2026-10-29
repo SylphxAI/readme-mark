@@ -191,3 +191,32 @@ test('imported entity-shaped query keys keep the displayed image URL in both for
     assert.equal(await s.copy('url'), displayed);
   } finally { s.dom.window.close(); }
 });
+
+test('typing literal semicolons and custom separators survive render URLs, imports and exports', async () => {
+  const s = await studio();
+  try {
+    s.kind('typing');
+    s.field('lines', ' \n ');
+    assert.equal(new URL(await s.copy('url')).searchParams.get('lines'), '');
+    for (const text of ['literal &amp; and &#34;\nSecond', 'semi; pipe| caret^ ␞ ␟\nEnd;', 'one;;\ntwo|']) {
+      s.field('lines', text);
+      const url = await s.copy('url');
+      const query = new URL(url).searchParams;
+      assert.deepEqual(query.get('lines').split(query.get('separator') || ';'), text.split('\n'));
+      for (const fmt of ['md', 'html']) assertImage(await s.copy(fmt), fmt, text.split('\n')[0], url);
+      s.w.document.getElementById('importBox').value = url;
+      s.w.document.getElementById('importForm').dispatchEvent(new s.w.Event('submit', { cancelable: true }));
+      assert.equal(await s.copy('url'), url);
+      assertImage(await s.copy('md'), 'md', text.split('\n')[0], url);
+    }
+    for (const path of ['/typing.svg', '/api/v1/mark/typing.svg']) {
+      const url = base + path + '?lines=literal%20%26amp%3B|Second&separator=%7C';
+      s.w.document.getElementById('importBox').value = url;
+      s.w.document.getElementById('importForm').dispatchEvent(new s.w.Event('submit', { cancelable: true }));
+      const displayed = await s.copy('url');
+      const query = new URL(displayed).searchParams;
+      assert.deepEqual(query.get('lines').split(query.get('separator')), ['literal &amp;', 'Second']);
+      assertImage(await s.copy('md'), 'md', 'literal &amp;', displayed);
+    }
+  } finally { s.dom.window.close(); }
+});
