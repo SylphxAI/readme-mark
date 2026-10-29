@@ -68,6 +68,14 @@ function assertImage(source, format, alt, url) {
   assert.equal(img.getAttribute('alt'), alt, source);
   assert.equal(img.getAttribute('src'), url, source);
   assert.deepEqual(img.getAttributeNames().sort(), ['alt', 'src'], source);
+  if (format === 'md') {
+    const table = JSDOM.fragment(micromark(`| Image |\n| --- |\n| ${source} |`, { extensions: [gfm()], htmlExtensions: [gfmHtml()] }));
+    const cell = table.querySelector('tbody td');
+    assert.equal(cell.childNodes.length, 1, source);
+    assert.equal(cell.firstChild.tagName, 'IMG', source);
+    assert.equal(cell.firstChild.getAttribute('alt'), alt, source);
+    assert.equal(cell.firstChild.getAttribute('src'), url, source);
+  }
 }
 
 const cases = [
@@ -157,7 +165,7 @@ test('normal title export is unchanged; hash-imported state roundtrips without e
   const s = await studio(base + '/#' + path);
   try {
     const url = await s.copy('url');
-    assert.equal(await s.copy('md'), `![Hello, README](${url})`);
+    assert.equal(await s.copy('md'), `![Hello, README](${url.replaceAll('&', '\\&')})`);
     assert.equal(await s.copy('html'), `<img src="${url.replaceAll('&', '&amp;')}" alt="Hello, README" />`);
     s.field('text', '[API] &amp; &#34; \\');
     const updated = await s.copy('url');
@@ -166,5 +174,20 @@ test('normal title export is unchanged; hash-imported state roundtrips without e
       assert.equal(await imported.copy('url'), updated);
       for (const fmt of ['md', 'html']) assertImage(await imported.copy(fmt), fmt, '[API] &amp; &#34; \\', updated);
     } finally { imported.dom.window.close(); }
+  } finally { s.dom.window.close(); }
+});
+
+test('imported entity-shaped query keys keep the displayed image URL in both formats', async () => {
+  const s = await studio();
+  try {
+    const url = base + '/api/v1/mark/hero.svg?text=Imported&amp;=keep';
+    s.w.document.getElementById('importBox').value = url;
+    s.w.document.getElementById('importForm').dispatchEvent(new s.w.Event('submit', { cancelable: true }));
+    const displayed = await s.copy('url');
+    assert.ok(displayed.endsWith('&amp;=keep'));
+    for (const fmt of ['md', 'html']) assertImage(await s.copy(fmt), fmt, 'Imported', displayed);
+    s.w.document.getElementById('importBox').value = await s.copy('md');
+    s.w.document.getElementById('importForm').dispatchEvent(new s.w.Event('submit', { cancelable: true }));
+    assert.equal(await s.copy('url'), displayed);
   } finally { s.dom.window.close(); }
 });

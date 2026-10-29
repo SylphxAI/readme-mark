@@ -580,13 +580,13 @@ function altText(){
 function markdownAlt(s){
   // GFM image descriptions parse inline syntax, entities and backslash escapes.
   // Escape once, including the backslash itself (especially before the final ]).
-  return s.replace(/[\\`*_\[\]<>!&~]/g, "\\$&");
+  return s.replace(/[\\`*_\[\]<>!&~|]/g, "\\$&");
 }
 function htmlAttribute(s){
   // Ampersands first: entity-looking user text must survive one HTML parse.
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-function buildMarkdown(){ return "![" + markdownAlt(altText()) + "](" + buildURL().replace(/[\\()]/g, "\\$&") + ")"; }
+function buildMarkdown(){ return "![" + markdownAlt(altText()) + "](" + buildURL().replace(/[\\()&|]/g, "\\$&") + ")"; }
 function buildHtml(){ return '<img src="' + htmlAttribute(buildURL()) + '" alt="' + htmlAttribute(altText()) + '" />'; }
 
 // ---- rendering -------------------------------------------------------------
@@ -815,7 +815,7 @@ function importUrl(raw){
   let u;
   const input = String(raw || "").trim();
   const markdown = input.match(/^!\[(?:\\.|[^\]\\])*\]\((.*)\)$/);
-  const text = markdown ? markdown[1].replace(/\\([\\()])/g, "$1") : input;
+  const text = markdown ? markdown[1].replace(/\\([\\()&|])/g, "$1") : input;
   try { u = new URL(text, BASE); } catch (_) { return null; }
   if (u.searchParams.has("url") && (u.pathname === "/" || u.pathname === "")) { try { u = new URL(u.searchParams.get("url"), BASE); } catch (_) {} }
   if (u.hash && u.hash.startsWith("#/")) { try { u = new URL(u.hash.slice(1), BASE); } catch (_) {} }
