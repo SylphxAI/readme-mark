@@ -1,0 +1,16 @@
+{
+  "name": "mark-studio-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/studio_exports.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0",
+    "micromark": "4.0.3",
+    "micromark-extension-gfm": "3.0.0"
+  }
+}

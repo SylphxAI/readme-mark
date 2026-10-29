@@ -44,4 +44,9 @@ the git revision embedded in the image (`SYLPHX_GIT_COMMIT_SHA` /
 `SYLPHX_GIT_SHA`, then `SOURCE_COMMIT` / `GIT_SHA`; `mark --version` fails the
 image build without one). Configuration: `.env.example`.
 
+For studio export changes, also run `npm ci --ignore-scripts && npm test`
+(Node 20+). It executes the studio copy controls and parses their output as
+GFM and HTML, including punctuation, entities and injection attempts. These
+JavaScript tests are development-only; the Rust service does not need Node.
+
 Full matrices, render sweeps and benchmarks run on CI, not the shared desk host.

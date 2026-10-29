@@ -24,6 +24,12 @@ formerly `SylphxAI/mark`) at <https://mark.sylphx.com>. Paste a URL into
 any README, issue, or site and it renders — nothing to install, no account, no
 API key.
 
+The studio copies ready-to-paste Markdown or HTML. Accessible text uses the
+first line, capped at 60 UTF-16 code units; brackets, backslashes, formatting
+characters and literal entity-like text are preserved within that limit.
+Escaping is handled by the exporter, so enter plain text rather than pre-escaped
+Markdown or HTML. URL-only copy and SVG download do not change the image URL.
+
 **Already using shields.io, capsule-render, skill-icons, readme-typing-svg or
 github-readme-stats?** Keep your URL and change only the host
 ([dialects](#switch-by-changing-the-host)).
