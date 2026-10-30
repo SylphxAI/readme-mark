@@ -134,22 +134,49 @@ fn security_headers(headers: &mut HeaderMap) {
 
 /// Returns true when `If-None-Match` matches `etag` (exact, weak, or `*`).
 fn etag_matches(if_none_match: Option<&str>, etag: &HeaderValue) -> bool {
-    fn norm(s: &str) -> &str {
-        let s = s.trim();
-        let s = s.strip_prefix("W/").unwrap_or(s);
-        s.trim().trim_matches('"')
+    let Some(mut rest) = if_none_match.map(|s| s.trim_matches([' ', '\t'])) else {
+        return false;
+    };
+    if rest == "*" {
+        return true;
     }
-    let etag = etag.to_str().unwrap_or_default();
-    match if_none_match {
-        None => false,
-        Some(v) => {
-            let v = v.trim();
-            if v == "*" {
-                return true;
-            }
-            let want = norm(etag);
-            v.split(',').any(|t| norm(t) == want)
+    let want = etag.to_str().unwrap_or_default();
+    let mut matched = false;
+    // RFC 9110 sections 8.8.3 and 13.1.2: commas are legal inside an opaque
+    // tag. Only a comma outside quotes separates validators. Invalid syntax
+    // is ignored as a whole so it cannot suppress the image with a false 304.
+    loop {
+        rest = rest.trim_start_matches([' ', '\t']);
+        if rest.is_empty() {
+            return matched;
         }
+        // HTTP lists allow empty elements (section 5.6.1).
+        if let Some(tail) = rest.strip_prefix(',') {
+            rest = tail;
+            continue;
+        }
+        rest = rest.strip_prefix("W/").unwrap_or(rest);
+        let Some(opaque) = rest.strip_prefix('"') else {
+            return false;
+        };
+        let Some(end) = opaque.find('"') else {
+            return false;
+        };
+        if !opaque[..end]
+            .bytes()
+            .all(|b| b == 0x21 || b >= 0x23 && b != 0x7f)
+        {
+            return false;
+        }
+        matched |= &rest[..end + 2] == want;
+        rest = opaque[end + 1..].trim_start_matches([' ', '\t']);
+        if rest.is_empty() {
+            return matched;
+        }
+        let Some(tail) = rest.strip_prefix(',') else {
+            return false;
+        };
+        rest = tail;
     }
 }
 
@@ -228,5 +255,16 @@ mod tests {
         assert!(etag_matches(Some(&format!("{}, {}", weak, strong)), &tag));
         assert!(!etag_matches(Some("\"deadbeefdeadbeef\""), &tag));
         assert!(!etag_matches(None, &tag));
+    }
+
+    #[test]
+    fn opaque_tags_keep_commas_and_backslashes() {
+        let comma = HeaderValue::from_static("\"left,right\"");
+        assert!(etag_matches(Some("\"left,right\""), &comma));
+        assert!(etag_matches(Some("W/\"left,right\", \"other\""), &comma));
+        assert!(!etag_matches(Some("\"left\", \"right\""), &comma));
+        let slash = HeaderValue::from_static(r#""left\right""#);
+        assert!(etag_matches(Some(r#"W/"left\right""#), &slash));
+        assert!(!etag_matches(Some(r#""left\\right""#), &slash));
     }
 }

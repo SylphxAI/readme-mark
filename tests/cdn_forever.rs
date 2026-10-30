@@ -169,3 +169,56 @@ async fn svg_get_is_origin_independent_for_cdn() {
         hdr(&h2, "vary")
     );
 }
+
+/// An opaque entity tag may contain commas (RFC 9110 section 8.8.3).
+/// Splitting inside its quotes can mistake a different cached representation
+/// for this image and suppress the body with a false 304.
+#[tokio::test]
+async fn conditional_images_compare_whole_quoted_validators() {
+    for path in [
+        "/badge/build-passing-brightgreen",
+        "/api/v1/mark/hero?text=Hi",
+        "/icons?i=rust,ts,react,nextjs,tailwind,docker,kubernetes,postgres,redis,go,python,bun",
+        "/typing?lines=Hello;World",
+        "/api?username=ada-dev",
+        "/api?username=no-such-user",
+        "/github/stars/SylphxAI/mark.svg",
+    ] {
+        let (status, headers, body) = get(path, None).await;
+        assert_eq!(status, StatusCode::OK, "{path}");
+        let tag = hdr(&headers, "etag");
+        let digest = tag.trim_matches('"');
+
+        for validator in [
+            format!("\"previous,{digest}\""),
+            format!("W/\"previous,{digest}\""),
+            format!("\"{digest},next\""),
+            format!("\"previous,{digest},next\""),
+            digest.to_string(),
+            format!("W/{digest}"),
+            format!("\"\"{digest}\"\""),
+            format!("{tag} trailing"),
+            format!("{tag}, malformed"),
+        ] {
+            let (s, h, b) = get(path, Some(&validator)).await;
+            assert_eq!(s, StatusCode::OK, "{path}: {validator}");
+            assert_eq!(b, body, "mismatch must send the complete SVG: {path}");
+            assert_eq!(hdr(&h, "etag"), tag, "validator identity: {path}");
+            assert_eq!(hdr(&h, "cache-control"), hdr(&headers, "cache-control"));
+        }
+
+        for validator in [
+            tag.clone(),
+            format!("W/{tag}"),
+            "*".into(),
+            format!("\"previous,other\", W/{tag}, \"next\""),
+            format!(" ,\tW/{tag} , ,"),
+        ] {
+            let (s, h, b) = get(path, Some(&validator)).await;
+            assert_eq!(s, StatusCode::NOT_MODIFIED, "{path}: {validator}");
+            assert!(b.is_empty(), "matching validator saves the body: {path}");
+            assert_eq!(hdr(&h, "etag"), tag);
+            assert_eq!(hdr(&h, "cache-control"), hdr(&headers, "cache-control"));
+        }
+    }
+}
