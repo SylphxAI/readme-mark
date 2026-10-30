@@ -220,3 +220,24 @@ test('typing literal semicolons and custom separators survive render URLs, impor
     }
   } finally { s.dom.window.close(); }
 });
+
+test('malformed badge URLs show recovery feedback without replacing the draft or breaking later imports', async () => {
+  const s = await studio();
+  try {
+    s.field('text', 'Keep my draft');
+    const draft = await s.copy('url');
+    const errors = [];
+    s.w.addEventListener('error', e => errors.push(e.message));
+    for (const path of ['build-100%-green', 'build-%FF-green', 'build-%E0%A4-green']) {
+      s.w.document.getElementById('importBox').value = 'https://img.shields.io/badge/' + path;
+      s.w.document.getElementById('importForm').dispatchEvent(new s.w.Event('submit', { cancelable: true }));
+      assert.match(s.w.document.getElementById('importNote').textContent, /try a badge, banner, icons, typing or stats URL/);
+      assert.equal(await s.copy('url'), draft);
+    }
+    assert.deepEqual(errors, []);
+    s.w.document.getElementById('importBox').value = 'https://img.shields.io/badge/build-100%25-green';
+    s.w.document.getElementById('importForm').dispatchEvent(new s.w.Event('submit', { cancelable: true }));
+    assert.match(s.w.document.getElementById('importNote').textContent, /Imported from shields.io/);
+    assertImage(await s.copy('md'), 'md', 'build: 100%', await s.copy('url'));
+  } finally { s.dom.window.close(); }
+});
