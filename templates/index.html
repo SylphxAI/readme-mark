@@ -172,7 +172,6 @@
     .import { flex-direction:column; }
     .import input, .import .btn { height:44px; flex:none; }
     .stage { min-height:180px; padding:20px 12px; }
-    .embed .actions .btn { display:none; }
     .kinds { -webkit-mask-image:linear-gradient(90deg,#000 85%,transparent); mask-image:linear-gradient(90deg,#000 85%,transparent); }
     .kinds button, .seg button, .chip { min-height:40px; }
     .themes { grid-template-columns:repeat(4,1fr); }
@@ -779,20 +778,25 @@ function setPreviewStatus(kind, text, retry){
   document.getElementById("statusText").textContent = text;
   document.getElementById("retryBtn").hidden = !retry;
 }
-function loadPreview(url){
-  const token = ++previewToken;
+function invalidatePreview(){
+  ++previewToken;
   previewReady = false;
+  previewUrl = "";
   document.getElementById("downloadBtn").disabled = true;
   setPreviewStatus("loading", "Rendering…");
+  document.getElementById("previewImg").classList.add("loading");
+  return previewToken;
+}
+function loadPreview(url){
+  const token = invalidatePreview(), alt = altText();
   const img = document.getElementById("previewImg");
-  img.classList.add("loading");
   const probe = new Image();
   probe.onload = () => {
     if (token !== previewToken) return;
     // Badges are ~20px tall: show small images at 2x so they can be judged.
     const small = probe.naturalWidth > 0 && probe.naturalWidth < 360 && probe.naturalHeight < 120;
     img.style.width = small ? (probe.naturalWidth * 2) + "px" : "";
-    img.src = url; img.alt = altText(); img.classList.remove("loading"); previewUrl = url; previewReady = true;
+    img.src = url; img.alt = alt; img.classList.remove("loading"); previewUrl = url; previewReady = true;
     document.getElementById("downloadBtn").disabled = false;
     setPreviewStatus("ready", probe.naturalWidth + " × " + probe.naturalHeight + " · SVG");
   };
@@ -808,12 +812,20 @@ function renderCode(){
   document.getElementById("copyLabel").textContent = state.fmt === "html" ? "Copy HTML" : state.fmt === "url" ? "Copy URL" : "Copy Markdown";
 }
 function refresh(){
+  clearTimeout(renderTimer);
   document.getElementById("stageTitle").textContent = KINDS[state.kind].name;
   renderCode();
   loadPreview(buildURL());
   try { history.replaceState(null, "", "#" + buildPath()); } catch (_) {}
 }
-function scheduleRefresh(){ clearTimeout(renderTimer); renderCode(); renderTimer = setTimeout(refresh, 220); }
+function scheduleRefresh(){
+  clearTimeout(renderTimer);
+  // Invalidate on the edit, not after the debounce: even an old probe that
+  // completes during this gap must not enable a download for the new draft.
+  invalidatePreview();
+  renderCode();
+  renderTimer = setTimeout(refresh, 220);
+}
 
 // ---- import: our URLs and the other services' URLs ------------------------
 const HOSTS = [
@@ -929,7 +941,7 @@ async function loadCatalog(){
   try { const r = await fetch("/api/v1/catalog"); if (r.ok) applyCatalog(await r.json()); } catch (_) {}
 }
 function init(){
-  document.getElementById("retryBtn").addEventListener("click", () => loadPreview(buildURL()));
+  document.getElementById("retryBtn").addEventListener("click", refresh);
   document.getElementById("copyBtn").addEventListener("click", async () => {
     const code = document.getElementById("codeBox").textContent;
     const button = document.getElementById("copyBtn");
@@ -942,17 +954,29 @@ function init(){
   document.getElementById("dockUrl").addEventListener("click", async () => { if (await copyText(buildURL(), "url")) toast("URL copied"); });
   document.getElementById("openBtn").addEventListener("click", () => window.open(buildURL(), "_blank", "noopener"));
   document.getElementById("downloadBtn").addEventListener("click", async () => {
-    if (!previewReady) return;
+    if (!previewReady || previewUrl !== buildURL()) return;
+    const token = previewToken, url = previewUrl, kind = state.kind;
+    const current = () => token === previewToken && url === buildURL();
+    previewReady = false;
+    document.getElementById("downloadBtn").disabled = true;
     setPreviewStatus("loading", "Preparing SVG export…");
     try {
-      const res = await fetch(previewUrl);
+      const res = await fetch(url);
       if (!res.ok || !(res.headers.get("content-type") || "").includes("svg")) throw new Error("not svg");
-      const href = URL.createObjectURL(await res.blob());
-      const a = el("a", { href, download: "mark-" + state.kind + ".svg" });
+      const blob = await res.blob();
+      // Fetch and body decoding can both finish after another edit/render.
+      // Discard superseded exports, including their success/error messages.
+      if (!current()) return;
+      const href = URL.createObjectURL(blob);
+      const a = el("a", { href, download: "mark-" + kind + ".svg" });
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(href), 1000);
+      previewReady = true;
+      document.getElementById("downloadBtn").disabled = false;
       setPreviewStatus("ready", "SVG downloaded.");
-    } catch (_) { setPreviewStatus("error", "SVG export unavailable — retry the render first.", true); }
+    } catch (_) {
+      if (current()) setPreviewStatus("error", "SVG export unavailable — retry the render first.", true);
+    }
   });
   document.querySelectorAll("#bgSeg button").forEach(b => b.addEventListener("click", () => {
     document.querySelectorAll("#bgSeg button").forEach(x => x.classList.toggle("on", x === b));
