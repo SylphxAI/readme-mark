@@ -527,6 +527,7 @@ const ORDER = ["banner","badge","typing","icons","stats","profile","score","depl
 // ---- state -----------------------------------------------------------------
 const state = { kind:"banner", vals:{}, extra:{}, bg:"dark", fmt:"md" };
 let previewToken = 0, previewUrl = "", previewReady = false, renderTimer = 0;
+let copyToken = 0;
 
 function flatFields(kind){
   const out = [];
@@ -539,6 +540,7 @@ function defaults(kind){
   return d;
 }
 function setKind(kind, vals, extra){
+  ++copyToken;
   state.kind = KINDS[kind] ? kind : "banner";
   state.vals = Object.assign(defaults(state.kind), vals || {});
   state.extra = extra || {};
@@ -628,6 +630,7 @@ function visible(f){
   return true;
 }
 function update(key, value, rerender){
+  ++copyToken;
   state.vals[key] = value;
   if (rerender) renderControls();
   markPreset(); scheduleRefresh();
@@ -916,8 +919,11 @@ function flashCopied(btn, label){
   return was;
 }
 async function copyText(s, fmt = state.fmt){
-  try { await navigator.clipboard.writeText(s); return true; }
+  const token = ++copyToken, url = buildURL(), selectedFormat = state.fmt;
+  const current = () => token === copyToken && url === buildURL() && selectedFormat === state.fmt;
+  try { await navigator.clipboard.writeText(s); return current(); }
   catch (_) {
+    if (!current()) return false;
     const ta = el("textarea");
     ta.value = s; document.body.appendChild(ta); ta.select();
     let copied = false;
@@ -988,6 +994,7 @@ function init(){
     document.querySelectorAll(".preset .thumb").forEach(t => t.style.background = b.dataset.bg === "light" ? "#fff" : "#0d1117");
   }));
   document.querySelectorAll("#fmtSeg button").forEach(b => b.addEventListener("click", () => {
+    ++copyToken;
     document.querySelectorAll("#fmtSeg button").forEach(x => x.classList.toggle("on", x === b));
     state.fmt = b.dataset.fmt; renderCode();
   }));
