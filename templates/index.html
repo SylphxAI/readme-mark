@@ -859,7 +859,8 @@ function importUrl(raw){
   };
   let kind, r;
   if (path.startsWith("/badge/")) {
-    const b = splitBadge(path.slice(7));
+    let b;
+    try { b = splitBadge(path.slice(7)); } catch (_) { return null; }
     kind = "badge"; r = take(kind);
     r.vals.label = b.label; r.vals.message = b.message; r.vals.color = p.get("color") || b.color || "blue";
   } else if (path === "/static/v1") { kind = "badge"; r = take(kind); }
