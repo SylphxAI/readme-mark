@@ -635,10 +635,12 @@ function update(key, value, rerender){
 }
 function fieldNode(f){
   const wrap = el("div", { class:"field" });
-  if (f.type !== "toggle") wrap.appendChild(el("label", {}, [document.createTextNode(f.label), f.local ? null : el("em", { text: f.key })]));
+  const inputId = "field-" + f.key;
+  const hasInput = ["text", "num", "area", "select"].includes(f.type) || f.free;
+  if (f.type !== "toggle") wrap.appendChild(el("label", hasInput ? {for:inputId} : {}, [document.createTextNode(f.label), f.local ? null : el("em", { text: f.key })]));
   const v = state.vals[f.key];
   if (f.type === "text" || f.type === "num") {
-    const input = el("input", { type: f.type === "num" ? "number" : "text", spellcheck:"false" });
+    const input = el("input", { id:inputId, type: f.type === "num" ? "number" : "text", spellcheck:"false" });
     if (f.min !== undefined) input.min = f.min;
     if (f.max !== undefined) input.max = f.max;
     input.value = v == null ? "" : v;
@@ -668,12 +670,12 @@ function fieldNode(f){
       wrap.appendChild(chips);
     }
   } else if (f.type === "area") {
-    const ta = el("textarea", { spellcheck:"false" });
+    const ta = el("textarea", { id:inputId, spellcheck:"false" });
     ta.value = v == null ? "" : v;
     ta.addEventListener("input", () => update(f.key, ta.value));
     wrap.appendChild(ta);
   } else if (f.type === "select") {
-    const sel = el("select");
+    const sel = el("select", { id:inputId });
     for (const o of f.opts) { const op = el("option", { value:o, text:o }); if (String(v) === o) op.selected = true; sel.appendChild(op); }
     sel.addEventListener("change", () => update(f.key, sel.value));
     wrap.appendChild(sel);
@@ -688,7 +690,7 @@ function fieldNode(f){
     }
     wrap.appendChild(chips);
     if (f.free) {
-      const input = el("input", { type:"text", spellcheck:"false", placeholder:"or any hex, e.g. 8A2BE2" });
+      const input = el("input", { id:inputId, type:"text", spellcheck:"false", placeholder:"or any hex, e.g. 8A2BE2" });
       input.value = f.opts.indexOf(v) >= 0 ? "" : (v || "");
       input.addEventListener("input", () => update(f.key, input.value.replace(/^#/, "")));
       wrap.appendChild(input);
