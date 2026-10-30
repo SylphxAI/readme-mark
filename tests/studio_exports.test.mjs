@@ -90,6 +90,50 @@ function assertImage(source, format, alt, url) {
   }
 }
 
+test('blocked clipboard writes select the requested embed format without claiming success, then recover', async () => {
+  for (const [selector, format] of [['#copyBtn', 'html'], ['#dockMd', 'md'], ['#dockUrl', 'url']]) {
+    for (const fallback of [() => false, () => { throw new Error('copy denied'); }]) {
+      const s = await studio();
+      try {
+        s.w.HTMLElement.prototype.scrollIntoView = () => {};
+        s.click('#fmtSeg [data-fmt="html"]');
+        s.click(selector); await pause(0);
+        s.w.navigator.clipboard.writeText = async () => { throw new Error('clipboard denied'); };
+        s.w.document.execCommand = fallback;
+        s.click(selector); await pause(0);
+        const code = s.w.document.getElementById('codeBox');
+        assert.equal(s.w.document.querySelector('#fmtSeg .on').dataset.fmt, format);
+        assert.equal(s.w.getSelection().toString(), code.textContent);
+        assert.equal(s.w.document.activeElement, code);
+        assert.match(s.w.document.getElementById('toast').textContent, /Copy was blocked.*manually/);
+        assert.equal(s.w.document.querySelector(selector).classList.contains('copied'), false);
+        assert.equal(s.w.document.querySelectorAll('body > textarea').length, 0);
+        s.w.navigator.clipboard.writeText = async () => {};
+        s.click(selector); await pause(0);
+        assert.match(s.w.document.getElementById('toast').textContent, /copied/);
+      } finally { s.dom.window.close(); }
+    }
+  }
+});
+
+test('legacy clipboard fallback reports success only when the browser confirms it', async () => {
+  const s = await studio();
+  try {
+    let fallbackText;
+    s.w.navigator.clipboard.writeText = async () => { throw new Error('clipboard unavailable'); };
+    s.w.document.execCommand = command => {
+      assert.equal(command, 'copy');
+      fallbackText = s.w.document.querySelector('body > textarea').value;
+      return true;
+    };
+    const expected = s.w.document.getElementById('codeBox').textContent;
+    s.click('#copyBtn'); await pause(0);
+    assert.equal(fallbackText, expected);
+    assert.equal(s.w.document.getElementById('copyLabel').textContent, 'Copied');
+    assert.match(s.w.document.getElementById('toast').textContent, /copied/);
+  } finally { s.dom.window.close(); }
+});
+
 const cases = [
   'Hello, README',
   'README \\',

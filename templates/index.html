@@ -913,9 +913,23 @@ function flashCopied(btn, label){
   clearTimeout(btn._t); btn._t = setTimeout(() => { btn.classList.remove("copied"); renderCode(); }, 1400);
   return was;
 }
-async function copyText(s){
-  try { await navigator.clipboard.writeText(s); }
-  catch (_) { const ta = el("textarea"); ta.value = s; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+async function copyText(s, fmt = state.fmt){
+  try { await navigator.clipboard.writeText(s); return true; }
+  catch (_) {
+    const ta = el("textarea");
+    ta.value = s; document.body.appendChild(ta); ta.select();
+    let copied = false;
+    try { copied = document.execCommand("copy"); } catch (_) {}
+    ta.remove();
+    if (copied) return true;
+    document.querySelector('#fmtSeg [data-fmt="' + fmt + '"]').click();
+    const code = document.getElementById("codeBox");
+    code.focus(); code.scrollIntoView({block:"center"});
+    const selection = window.getSelection(), range = document.createRange();
+    range.selectNodeContents(code); selection.removeAllRanges(); selection.addRange(range);
+    toast("Copy was blocked. Copy the selected embed code manually.");
+    return false;
+  }
 }
 function applyCatalog(cat){
   if (Array.isArray(cat.themes) && cat.themes.length) THEMES = cat.themes.map(t => typeof t === "string" ? t : t.id).filter(Boolean);
@@ -931,12 +945,14 @@ function init(){
   document.getElementById("retryBtn").addEventListener("click", refresh);
   document.getElementById("copyBtn").addEventListener("click", async () => {
     const code = document.getElementById("codeBox").textContent;
-    await copyText(code);
+    const button = document.getElementById("copyBtn");
+    clearTimeout(button._t); button.classList.remove("copied"); renderCode();
+    if (!await copyText(code)) return;
     flashCopied(document.getElementById("copyBtn"), document.getElementById("copyLabel"));
     toast(state.fmt === "url" ? "URL copied" : state.fmt === "html" ? "HTML copied" : "Markdown copied — paste it into your README");
   });
-  document.getElementById("dockMd").addEventListener("click", async (e) => { const b = e.currentTarget; await copyText(buildMarkdown()); b.classList.add("copied"); b.textContent = "Copied"; setTimeout(() => { b.classList.remove("copied"); b.textContent = "Copy Markdown"; }, 1400); toast("Markdown copied — paste it into your README"); });
-  document.getElementById("dockUrl").addEventListener("click", async () => { await copyText(buildURL()); toast("URL copied"); });
+  document.getElementById("dockMd").addEventListener("click", async (e) => { const b = e.currentTarget; clearTimeout(b._t); b.classList.remove("copied"); b.textContent = "Copy Markdown"; if (!await copyText(buildMarkdown(), "md")) return; b.classList.add("copied"); b.textContent = "Copied"; b._t = setTimeout(() => { b.classList.remove("copied"); b.textContent = "Copy Markdown"; }, 1400); toast("Markdown copied — paste it into your README"); });
+  document.getElementById("dockUrl").addEventListener("click", async () => { if (await copyText(buildURL(), "url")) toast("URL copied"); });
   document.getElementById("openBtn").addEventListener("click", () => window.open(buildURL(), "_blank", "noopener"));
   document.getElementById("downloadBtn").addEventListener("click", async () => {
     if (!previewReady || previewUrl !== buildURL()) return;
