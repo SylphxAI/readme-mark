@@ -134,6 +134,45 @@ test('legacy clipboard fallback reports success only when the browser confirms i
   } finally { s.dom.window.close(); }
 });
 
+test('obsolete copy completions cannot label an edited draft or another format as copied', async () => {
+  for (const selector of ['#copyBtn', '#dockMd', '#dockUrl']) {
+    for (const mutation of ['edit', 'kind', 'format', 'newer copy']) {
+      const s = await studio();
+      try {
+        const writes = [];
+        s.w.navigator.clipboard.writeText = () => { const d = deferred(); writes.push(d); return d.promise; };
+        s.click(selector);
+        if (mutation === 'edit') s.field('text', 'latest draft');
+        if (mutation === 'kind') s.kind('badge');
+        if (mutation === 'format') s.click('#fmtSeg [data-fmt="html"]');
+        if (mutation === 'newer copy') s.click(selector);
+        writes[0].resolve(); await pause(0);
+        assert.equal(s.w.document.querySelector(selector).classList.contains('copied'), false, selector + ' ' + mutation);
+        assert.equal(s.w.document.getElementById('toast').textContent, '');
+        if (mutation === 'newer copy') {
+          writes[1].resolve(); await pause(0);
+          assert.match(s.w.document.getElementById('toast').textContent, /copied/);
+        }
+      } finally { s.dom.window.close(); }
+    }
+  }
+});
+
+test('rejected obsolete copy does not select a newer draft or invoke the fallback', async () => {
+  const s = await studio();
+  try {
+    const write = deferred();
+    s.w.navigator.clipboard.writeText = () => write.promise;
+    let fallbacks = 0;
+    s.w.document.execCommand = () => { fallbacks++; return true; };
+    s.click('#copyBtn'); s.field('text', 'newer draft');
+    write.reject(new Error('denied')); await pause(0);
+    assert.equal(fallbacks, 0);
+    assert.equal(s.w.getSelection().toString(), '');
+    assert.equal(s.w.document.getElementById('toast').textContent, '');
+  } finally { s.dom.window.close(); }
+});
+
 const cases = [
   'Hello, README',
   'README \\',
