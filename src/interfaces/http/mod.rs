@@ -95,6 +95,18 @@ pub fn app(state: AppState) -> Router {
 fn routes(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health::health))
+        .route(
+            "/llms.txt",
+            get(|| async {
+                (
+                    [(
+                        axum::http::header::CONTENT_TYPE,
+                        "text/plain; charset=utf-8",
+                    )],
+                    include_str!("../../../static/llms.txt"),
+                )
+            }),
+        )
         // `/api` is also capsule-render's image path (ADR-0005 dialects).
         .route("/api", get(dispatch::api))
         .route("/api/v1", get(catalog::api_index))
