@@ -6,7 +6,7 @@
     "test": "node --test tests/studio_exports.test.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   },
   "devDependencies": {
     "jsdom": "30.1.3",

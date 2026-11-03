@@ -45,7 +45,7 @@ the git revision embedded in the image (`SYLPHX_GIT_COMMIT_SHA` /
 image build without one). Configuration: `.env.example`.
 
 For studio export changes, also run `npm ci --ignore-scripts && npm test`
-(Node 20+). It executes the studio copy controls and parses their output as
+(Node 22.22.2+, 24.15.0+, or 26+; see `package.json` for the exact range). It executes the studio copy controls and parses their output as
 GFM and HTML, including punctuation, entities and injection attempts. These
 JavaScript tests are development-only; the Rust service does not need Node.
 
