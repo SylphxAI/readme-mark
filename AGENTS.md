@@ -26,6 +26,7 @@ paths: [docs/capabilities.md](docs/capabilities.md). Decision of record:
 - Brand assets are generated from the masters in `brand/`
   ([usage sheet](brand/README.md)); `static/favicon.svg` and `static/og.png` are
   copies, so change the master and run the pinned shared generator ([usage](brand/README.md)).
+- Any visual work (site, studio, images, posts) follows [DESIGN.md](DESIGN.md).
 
 ## Judged by
 
