@@ -681,10 +681,18 @@ async fn every_html_page_has_the_legal_footer() {
             "href=\"/legal/acceptable-use\"",
             "hi@sylphx.com",
             "16438428",
-            "+44 333 335 7935",
+            "+44 7537 188 188",
+            "href=\"tel:+447537188188\"",
             "128 City Road",
         ] {
             assert!(body.contains(needle), "{path} lacks {needle}");
+        }
+        let digits: String = body.chars().filter(char::is_ascii_digit).collect();
+        for retired in ["443333357935", "03333357935"] {
+            assert!(
+                !digits.contains(retired),
+                "{path} contains a retired phone number"
+            );
         }
         assert!(!body.contains("{{"), "{path} has an unfilled placeholder");
     }

@@ -13,18 +13,29 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // Execute the real studio script and its event handlers, not a second serializer.
 // Only network, image decoding, clipboard and the file save are browser fakes.
-async function studio(url = base) {
+async function studio(url = base, options = {}) {
   const dom = new JSDOM(html, { url, runScripts: 'outside-only' });
   const { window: w } = dom;
-  const copied = [], saved = [];
+  const copied = [], saved = [], probes = [], requests = [];
+  let render = null;
+  if (options.controlled) {
+    const setTimeout = w.setTimeout.bind(w), clearTimeout = w.clearTimeout.bind(w);
+    w.setTimeout = (fn, ms) => ms === 220 ? (render = fn, 'render') : setTimeout(fn, ms);
+    w.clearTimeout = id => id === 'render' ? (render = null) : clearTimeout(id);
+  }
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="880" height="220"/>';
   w.fetch = async url => String(url).includes('catalog')
     ? { ok: true, json: async () => ({}) }
-    : { ok: true, headers: new Map([['content-type', 'image/svg+xml']]), blob: async () => new Blob([svg]) };
+    : (requests.push(String(url)), options.fetchSvg ? options.fetchSvg(String(url))
+      : { ok: true, headers: new Map([['content-type', 'image/svg+xml']]), blob: async () => new Blob([svg]) });
   w.Image = class {
     naturalWidth = 880;
     naturalHeight = 220;
-    set src(value) { queueMicrotask(() => this.onload()); }
+    set src(value) {
+      this.url = value;
+      probes.push(this);
+      if (!options.controlled) queueMicrotask(() => this.onload());
+    }
   };
   Object.defineProperty(w.navigator, 'clipboard', { value: { writeText: async s => copied.push(s) } });
   w.URL.createObjectURL = blob => { saved.push({ blob }); return 'blob:studio-test'; };
@@ -53,7 +64,8 @@ async function studio(url = base) {
     return copied.at(-1);
   };
   const kind = name => click(`#kinds button:nth-child(${['banner', 'badge', 'typing', 'icons', 'stats', 'profile', 'score', 'deploy'].indexOf(name) + 1})`);
-  return { w, dom, field, kind, click, copy, saved };
+  const flushRender = () => { assert.ok(render, 'debounced render scheduled'); const fn = render; render = null; fn(); };
+  return { w, dom, field, kind, click, copy, saved, probes, requests, flushRender };
 }
 
 function assertImage(source, format, alt, url) {
@@ -77,6 +89,89 @@ function assertImage(source, format, alt, url) {
     assert.equal(cell.firstChild.getAttribute('src'), url, source);
   }
 }
+
+test('blocked clipboard writes select the requested embed format without claiming success, then recover', async () => {
+  for (const [selector, format] of [['#copyBtn', 'html'], ['#dockMd', 'md'], ['#dockUrl', 'url']]) {
+    for (const fallback of [() => false, () => { throw new Error('copy denied'); }]) {
+      const s = await studio();
+      try {
+        s.w.HTMLElement.prototype.scrollIntoView = () => {};
+        s.click('#fmtSeg [data-fmt="html"]');
+        s.click(selector); await pause(0);
+        s.w.navigator.clipboard.writeText = async () => { throw new Error('clipboard denied'); };
+        s.w.document.execCommand = fallback;
+        s.click(selector); await pause(0);
+        const code = s.w.document.getElementById('codeBox');
+        assert.equal(s.w.document.querySelector('#fmtSeg .on').dataset.fmt, format);
+        assert.equal(s.w.getSelection().toString(), code.textContent);
+        assert.equal(s.w.document.activeElement, code);
+        assert.match(s.w.document.getElementById('toast').textContent, /Copy was blocked.*manually/);
+        assert.equal(s.w.document.querySelector(selector).classList.contains('copied'), false);
+        assert.equal(s.w.document.querySelectorAll('body > textarea').length, 0);
+        s.w.navigator.clipboard.writeText = async () => {};
+        s.click(selector); await pause(0);
+        assert.match(s.w.document.getElementById('toast').textContent, /copied/);
+      } finally { s.dom.window.close(); }
+    }
+  }
+});
+
+test('legacy clipboard fallback reports success only when the browser confirms it', async () => {
+  const s = await studio();
+  try {
+    let fallbackText;
+    s.w.navigator.clipboard.writeText = async () => { throw new Error('clipboard unavailable'); };
+    s.w.document.execCommand = command => {
+      assert.equal(command, 'copy');
+      fallbackText = s.w.document.querySelector('body > textarea').value;
+      return true;
+    };
+    const expected = s.w.document.getElementById('codeBox').textContent;
+    s.click('#copyBtn'); await pause(0);
+    assert.equal(fallbackText, expected);
+    assert.equal(s.w.document.getElementById('copyLabel').textContent, 'Copied');
+    assert.match(s.w.document.getElementById('toast').textContent, /copied/);
+  } finally { s.dom.window.close(); }
+});
+
+test('obsolete copy completions cannot label an edited draft or another format as copied', async () => {
+  for (const selector of ['#copyBtn', '#dockMd', '#dockUrl']) {
+    for (const mutation of ['edit', 'kind', 'format', 'newer copy']) {
+      const s = await studio();
+      try {
+        const writes = [];
+        s.w.navigator.clipboard.writeText = () => { const d = deferred(); writes.push(d); return d.promise; };
+        s.click(selector);
+        if (mutation === 'edit') s.field('text', 'latest draft');
+        if (mutation === 'kind') s.kind('badge');
+        if (mutation === 'format') s.click('#fmtSeg [data-fmt="html"]');
+        if (mutation === 'newer copy') s.click(selector);
+        writes[0].resolve(); await pause(0);
+        assert.equal(s.w.document.querySelector(selector).classList.contains('copied'), false, selector + ' ' + mutation);
+        assert.equal(s.w.document.getElementById('toast').textContent, '');
+        if (mutation === 'newer copy') {
+          writes[1].resolve(); await pause(0);
+          assert.match(s.w.document.getElementById('toast').textContent, /copied/);
+        }
+      } finally { s.dom.window.close(); }
+    }
+  }
+});
+
+test('rejected obsolete copy does not select a newer draft or invoke the fallback', async () => {
+  const s = await studio();
+  try {
+    const write = deferred();
+    s.w.navigator.clipboard.writeText = () => write.promise;
+    let fallbacks = 0;
+    s.w.document.execCommand = () => { fallbacks++; return true; };
+    s.click('#copyBtn'); s.field('text', 'newer draft');
+    write.reject(new Error('denied')); await pause(0);
+    assert.equal(fallbacks, 0);
+    assert.equal(s.w.getSelection().toString(), '');
+    assert.equal(s.w.document.getElementById('toast').textContent, '');
+  } finally { s.dom.window.close(); }
+});
 
 const cases = [
   'Hello, README',
@@ -192,6 +287,27 @@ test('imported entity-shaped query keys keep the displayed image URL in both for
   } finally { s.dom.window.close(); }
 });
 
+test('malformed badge URLs show recovery feedback without replacing the draft or breaking later imports', async () => {
+  const s = await studio();
+  try {
+    s.field('text', 'Keep my draft');
+    const draft = await s.copy('url');
+    const errors = [];
+    s.w.addEventListener('error', e => errors.push(e.message));
+    for (const path of ['build-100%-green', 'build-%FF-green', 'build-%E0%A4-green']) {
+      s.w.document.getElementById('importBox').value = 'https://img.shields.io/badge/' + path;
+      s.w.document.getElementById('importForm').dispatchEvent(new s.w.Event('submit', { cancelable: true }));
+      assert.match(s.w.document.getElementById('importNote').textContent, /try a badge, banner, icons, typing or stats URL/);
+      assert.equal(await s.copy('url'), draft);
+    }
+    assert.deepEqual(errors, []);
+    s.w.document.getElementById('importBox').value = 'https://img.shields.io/badge/build-100%25-green';
+    s.w.document.getElementById('importForm').dispatchEvent(new s.w.Event('submit', { cancelable: true }));
+    assert.match(s.w.document.getElementById('importNote').textContent, /Imported from shields.io/);
+    assertImage(await s.copy('md'), 'md', 'build: 100%', await s.copy('url'));
+  } finally { s.dom.window.close(); }
+});
+
 test('typing literal semicolons and custom separators survive render URLs, imports and exports', async () => {
   const s = await studio();
   try {
@@ -218,5 +334,167 @@ test('typing literal semicolons and custom separators survive render URLs, impor
       assert.deepEqual(query.get('lines').split(query.get('separator')), ['literal &amp;', 'Second']);
       assertImage(await s.copy('md'), 'md', 'literal &amp;', displayed);
     }
+  } finally { s.dom.window.close(); }
+});
+
+const deferred = () => {
+  let resolve, reject;
+  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
+  return { promise, resolve, reject };
+};
+const svgResponse = (url, body) => ({
+  ok: true,
+  headers: new Map([['content-type', 'image/svg+xml']]),
+  blob: async () => body ? await body : new Blob([
+    `<svg xmlns="http://www.w3.org/2000/svg"><text>${new URL(url).searchParams.get('text')}</text></svg>`,
+  ]),
+});
+function assertPending(s, status = 'loading') {
+  assert.equal(s.w.document.getElementById('downloadBtn').disabled, true);
+  assert.equal(s.w.document.getElementById('previewStatus').dataset.state, status);
+}
+
+test('immediate edit/download invalidates readiness before debounce and saves only the latest SVG bytes', async () => {
+  const s = await studio(base, { controlled: true, fetchSvg: url => svgResponse(url) });
+  try {
+    s.probes.at(-1).onload();
+    assert.equal(s.w.document.getElementById('downloadBtn').disabled, false);
+    const title = 'Mark export freshness witness 2026-10-29';
+    s.field('text', title);
+    s.click('#downloadBtn'); // same synchronous turn, no timer or probe completion
+    assertPending(s);
+    assert.equal(s.requests.length, 0);
+    assert.equal(s.saved.length, 0);
+    assert.ok(s.w.document.getElementById('codeBox').textContent.includes('Mark+export+freshness'));
+    s.flushRender();
+    s.probes.at(-1).onload();
+    s.click('#downloadBtn');
+    await pause(0);
+    assert.equal(s.saved.length, 1);
+    const bytes = await s.saved[0].blob.text();
+    assert.ok(bytes.includes(title));
+    assert.ok(!bytes.includes('Hello, README'));
+    assert.equal(s.w.document.getElementById('statusText').textContent, 'SVG downloaded.');
+  } finally { s.dom.window.close(); }
+});
+
+test('obsolete preview success/error cannot win during debounce, after newer success, or after kind changes', async () => {
+  const s = await studio(base, { controlled: true });
+  try {
+    const initial = s.probes.at(-1);
+    s.field('text', 'first edit');
+    initial.onload(); initial.onerror();
+    assertPending(s);
+    s.flushRender();
+    const first = s.probes.at(-1);
+    s.field('text', 'latest edit');
+    s.flushRender();
+    const latest = s.probes.at(-1);
+    latest.onload();
+    const url = s.w.document.getElementById('previewImg').src;
+    first.onload(); initial.onerror();
+    assert.equal(s.w.document.getElementById('previewImg').src, url);
+    assert.equal(new URL(url).searchParams.get('text'), 'latest edit');
+    s.field('text', 'pending before kind switch');
+    s.kind('badge');
+    assertPending(s);
+    latest.onload(); first.onerror();
+    assertPending(s);
+    s.probes.at(-1).onload();
+    assert.ok(s.w.document.getElementById('previewImg').src.includes('/badge/'));
+    assert.throws(s.flushRender, /debounced render scheduled/, 'kind switch cancels the queued old refresh');
+  } finally { s.dom.window.close(); }
+});
+
+test('numeric edits stay unavailable on latest preview failure; retry renders latest values, not an old success', async () => {
+  const s = await studio(base, { controlled: true });
+  try {
+    const initial = s.probes.at(-1);
+    initial.onload();
+    s.field('width', '901');
+    assertPending(s);
+    s.flushRender();
+    const older = s.probes.at(-1);
+    s.field('width', '997');
+    older.onload();
+    assertPending(s);
+    s.flushRender();
+    s.probes.at(-1).onerror();
+    assertPending(s, 'error');
+    assert.equal(s.w.document.getElementById('retryBtn').hidden, false);
+    initial.onload(); older.onload();
+    s.click('#downloadBtn');
+    assertPending(s, 'error');
+    assert.equal(s.requests.length, 0);
+    s.click('#retryBtn');
+    assertPending(s);
+    assert.equal(new URL(s.probes.at(-1).url).searchParams.get('width'), '997');
+    s.probes.at(-1).onload();
+    s.click('#downloadBtn'); await pause(0);
+    assert.equal(new URL(s.requests.at(-1)).searchParams.get('width'), '997');
+    assert.equal(s.saved.length, 1);
+  } finally { s.dom.window.close(); }
+});
+
+for (const stage of ['response', 'body', 'failure']) {
+  test(`an edit or kind switch during export ${stage} discards stale bytes and status`, async () => {
+    const pending = deferred();
+    const s = await studio(base, { controlled: true, fetchSvg: url => stage === 'body'
+      ? svgResponse(url, pending.promise) : pending.promise });
+    try {
+      s.probes.at(-1).onload();
+      s.click('#downloadBtn'); s.click('#downloadBtn');
+      assert.equal(s.requests.length, 1, 'duplicate download is disabled');
+      await pause(0); // response consumed, body may remain pending
+      s.field('text', 'latest draft');
+      s.kind('score');
+      s.probes.at(-1).onerror();
+      assertPending(s, 'error');
+      const status = s.w.document.getElementById('statusText').textContent;
+      if (stage === 'failure') pending.reject(new Error('offline'));
+      else pending.resolve(stage === 'body' ? new Blob(['<svg><text>old</text></svg>']) : svgResponse(s.requests[0]));
+      await pause(0);
+      assert.equal(s.saved.length, 0);
+      assertPending(s, 'error');
+      assert.equal(s.w.document.getElementById('statusText').textContent, status);
+    } finally { s.dom.window.close(); }
+  });
+}
+
+test('failed current export stays disabled until a successful preview retry', async () => {
+  const s = await studio(base, { controlled: true, fetchSvg: () => ({ ok: false }) });
+  try {
+    s.probes.at(-1).onload();
+    s.click('#downloadBtn'); await pause(0);
+    assertPending(s, 'error');
+    s.click('#downloadBtn');
+    assert.equal(s.requests.length, 1);
+    s.click('#retryBtn');
+    assertPending(s);
+    s.probes.at(-1).onload();
+    assert.equal(s.w.document.getElementById('downloadBtn').disabled, false);
+  } finally { s.dom.window.close(); }
+});
+
+test('all eight kinds preview and download through the same readiness gate', async () => {
+  const s = await studio(base, { controlled: true });
+  try {
+    for (const kind of ['banner', 'badge', 'typing', 'icons', 'stats', 'profile', 'score', 'deploy']) {
+      s.kind(kind);
+      assertPending(s);
+      s.probes.at(-1).onload();
+      const preview = s.w.document.getElementById('previewImg').src;
+      for (const format of ['md', 'html']) {
+        assertImage(await s.copy(format), format, s.w.document.getElementById('previewImg').alt, preview);
+      }
+      assert.equal(await s.copy('url'), preview);
+      s.click('#downloadBtn'); await pause(0);
+      assert.equal(s.requests.at(-1), preview);
+      assert.equal(s.saved.at(-1).name, `mark-${kind}.svg`);
+      const svg = new JSDOM(await s.saved.at(-1).blob.text(), { contentType: 'image/svg+xml' });
+      assert.equal(svg.window.document.documentElement.localName, 'svg');
+      svg.window.close();
+    }
+    assert.equal(s.saved.length, 8);
   } finally { s.dom.window.close(); }
 });

@@ -24,3 +24,7 @@ To add a case, copy an image URL from a README, retain a commit-pinned source
 link, and record expected geometry and text independently of a snapshot update.
 Update the expected counts in `dialect_corpus.rs`. Never fetch upstream services
 at test time or regenerate expectations from the response under test.
+
+The [production compatibility workflow](../../docs/production-compatibility.md)
+uses this same corpus and the existing live probe after serving changes and
+daily, publishing timestamped verdicts separately from source CI.

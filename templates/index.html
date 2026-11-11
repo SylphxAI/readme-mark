@@ -172,7 +172,6 @@
     .import { flex-direction:column; }
     .import input, .import .btn { height:44px; flex:none; }
     .stage { min-height:180px; padding:20px 12px; }
-    .embed .actions .btn { display:none; }
     .kinds { -webkit-mask-image:linear-gradient(90deg,#000 85%,transparent); mask-image:linear-gradient(90deg,#000 85%,transparent); }
     .kinds button, .seg button, .chip { min-height:40px; }
     .themes { grid-template-columns:repeat(4,1fr); }
@@ -528,6 +527,7 @@ const ORDER = ["banner","badge","typing","icons","stats","profile","score","depl
 // ---- state -----------------------------------------------------------------
 const state = { kind:"banner", vals:{}, extra:{}, bg:"dark", fmt:"md" };
 let previewToken = 0, previewUrl = "", previewReady = false, renderTimer = 0;
+let copyToken = 0;
 
 function flatFields(kind){
   const out = [];
@@ -540,6 +540,7 @@ function defaults(kind){
   return d;
 }
 function setKind(kind, vals, extra){
+  ++copyToken;
   state.kind = KINDS[kind] ? kind : "banner";
   state.vals = Object.assign(defaults(state.kind), vals || {});
   state.extra = extra || {};
@@ -629,16 +630,19 @@ function visible(f){
   return true;
 }
 function update(key, value, rerender){
+  ++copyToken;
   state.vals[key] = value;
   if (rerender) renderControls();
   markPreset(); scheduleRefresh();
 }
 function fieldNode(f){
   const wrap = el("div", { class:"field" });
-  if (f.type !== "toggle") wrap.appendChild(el("label", {}, [document.createTextNode(f.label), f.local ? null : el("em", { text: f.key })]));
+  const inputId = "field-" + f.key;
+  const hasInput = ["text", "num", "area", "select"].includes(f.type) || f.free;
+  if (f.type !== "toggle") wrap.appendChild(el("label", hasInput ? {for:inputId} : {}, [document.createTextNode(f.label), f.local ? null : el("em", { text: f.key })]));
   const v = state.vals[f.key];
   if (f.type === "text" || f.type === "num") {
-    const input = el("input", { type: f.type === "num" ? "number" : "text", spellcheck:"false" });
+    const input = el("input", { id:inputId, type: f.type === "num" ? "number" : "text", spellcheck:"false" });
     if (f.min !== undefined) input.min = f.min;
     if (f.max !== undefined) input.max = f.max;
     input.value = v == null ? "" : v;
@@ -668,12 +672,12 @@ function fieldNode(f){
       wrap.appendChild(chips);
     }
   } else if (f.type === "area") {
-    const ta = el("textarea", { spellcheck:"false" });
+    const ta = el("textarea", { id:inputId, spellcheck:"false" });
     ta.value = v == null ? "" : v;
     ta.addEventListener("input", () => update(f.key, ta.value));
     wrap.appendChild(ta);
   } else if (f.type === "select") {
-    const sel = el("select");
+    const sel = el("select", { id:inputId });
     for (const o of f.opts) { const op = el("option", { value:o, text:o }); if (String(v) === o) op.selected = true; sel.appendChild(op); }
     sel.addEventListener("change", () => update(f.key, sel.value));
     wrap.appendChild(sel);
@@ -688,7 +692,7 @@ function fieldNode(f){
     }
     wrap.appendChild(chips);
     if (f.free) {
-      const input = el("input", { type:"text", spellcheck:"false", placeholder:"or any hex, e.g. 8A2BE2" });
+      const input = el("input", { id:inputId, type:"text", spellcheck:"false", placeholder:"or any hex, e.g. 8A2BE2" });
       input.value = f.opts.indexOf(v) >= 0 ? "" : (v || "");
       input.addEventListener("input", () => update(f.key, input.value.replace(/^#/, "")));
       wrap.appendChild(input);
@@ -779,20 +783,25 @@ function setPreviewStatus(kind, text, retry){
   document.getElementById("statusText").textContent = text;
   document.getElementById("retryBtn").hidden = !retry;
 }
-function loadPreview(url){
-  const token = ++previewToken;
+function invalidatePreview(){
+  ++previewToken;
   previewReady = false;
+  previewUrl = "";
   document.getElementById("downloadBtn").disabled = true;
   setPreviewStatus("loading", "Rendering…");
+  document.getElementById("previewImg").classList.add("loading");
+  return previewToken;
+}
+function loadPreview(url){
+  const token = invalidatePreview(), alt = altText();
   const img = document.getElementById("previewImg");
-  img.classList.add("loading");
   const probe = new Image();
   probe.onload = () => {
     if (token !== previewToken) return;
     // Badges are ~20px tall: show small images at 2x so they can be judged.
     const small = probe.naturalWidth > 0 && probe.naturalWidth < 360 && probe.naturalHeight < 120;
     img.style.width = small ? (probe.naturalWidth * 2) + "px" : "";
-    img.src = url; img.alt = altText(); img.classList.remove("loading"); previewUrl = url; previewReady = true;
+    img.src = url; img.alt = alt; img.classList.remove("loading"); previewUrl = url; previewReady = true;
     document.getElementById("downloadBtn").disabled = false;
     setPreviewStatus("ready", probe.naturalWidth + " × " + probe.naturalHeight + " · SVG");
   };
@@ -808,12 +817,20 @@ function renderCode(){
   document.getElementById("copyLabel").textContent = state.fmt === "html" ? "Copy HTML" : state.fmt === "url" ? "Copy URL" : "Copy Markdown";
 }
 function refresh(){
+  clearTimeout(renderTimer);
   document.getElementById("stageTitle").textContent = KINDS[state.kind].name;
   renderCode();
   loadPreview(buildURL());
   try { history.replaceState(null, "", "#" + buildPath()); } catch (_) {}
 }
-function scheduleRefresh(){ clearTimeout(renderTimer); renderCode(); renderTimer = setTimeout(refresh, 220); }
+function scheduleRefresh(){
+  clearTimeout(renderTimer);
+  // Invalidate on the edit, not after the debounce: even an old probe that
+  // completes during this gap must not enable a download for the new draft.
+  invalidatePreview();
+  renderCode();
+  renderTimer = setTimeout(refresh, 220);
+}
 
 // ---- import: our URLs and the other services' URLs ------------------------
 const HOSTS = [
@@ -847,7 +864,8 @@ function importUrl(raw){
   };
   let kind, r;
   if (path.startsWith("/badge/")) {
-    const b = splitBadge(path.slice(7));
+    let b;
+    try { b = splitBadge(path.slice(7)); } catch (_) { return null; }
     kind = "badge"; r = take(kind);
     r.vals.label = b.label; r.vals.message = b.message; r.vals.color = p.get("color") || b.color || "blue";
   } else if (path === "/static/v1") { kind = "badge"; r = take(kind); }
@@ -900,9 +918,26 @@ function flashCopied(btn, label){
   clearTimeout(btn._t); btn._t = setTimeout(() => { btn.classList.remove("copied"); renderCode(); }, 1400);
   return was;
 }
-async function copyText(s){
-  try { await navigator.clipboard.writeText(s); }
-  catch (_) { const ta = el("textarea"); ta.value = s; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+async function copyText(s, fmt = state.fmt){
+  const token = ++copyToken, url = buildURL(), selectedFormat = state.fmt;
+  const current = () => token === copyToken && url === buildURL() && selectedFormat === state.fmt;
+  try { await navigator.clipboard.writeText(s); return current(); }
+  catch (_) {
+    if (!current()) return false;
+    const ta = el("textarea");
+    ta.value = s; document.body.appendChild(ta); ta.select();
+    let copied = false;
+    try { copied = document.execCommand("copy"); } catch (_) {}
+    ta.remove();
+    if (copied) return true;
+    document.querySelector('#fmtSeg [data-fmt="' + fmt + '"]').click();
+    const code = document.getElementById("codeBox");
+    code.focus(); code.scrollIntoView({block:"center"});
+    const selection = window.getSelection(), range = document.createRange();
+    range.selectNodeContents(code); selection.removeAllRanges(); selection.addRange(range);
+    toast("Copy was blocked. Copy the selected embed code manually.");
+    return false;
+  }
 }
 function applyCatalog(cat){
   if (Array.isArray(cat.themes) && cat.themes.length) THEMES = cat.themes.map(t => typeof t === "string" ? t : t.id).filter(Boolean);
@@ -915,28 +950,42 @@ async function loadCatalog(){
   try { const r = await fetch("/api/v1/catalog"); if (r.ok) applyCatalog(await r.json()); } catch (_) {}
 }
 function init(){
-  document.getElementById("retryBtn").addEventListener("click", () => loadPreview(buildURL()));
+  document.getElementById("retryBtn").addEventListener("click", refresh);
   document.getElementById("copyBtn").addEventListener("click", async () => {
     const code = document.getElementById("codeBox").textContent;
-    await copyText(code);
+    const button = document.getElementById("copyBtn");
+    clearTimeout(button._t); button.classList.remove("copied"); renderCode();
+    if (!await copyText(code)) return;
     flashCopied(document.getElementById("copyBtn"), document.getElementById("copyLabel"));
     toast(state.fmt === "url" ? "URL copied" : state.fmt === "html" ? "HTML copied" : "Markdown copied — paste it into your README");
   });
-  document.getElementById("dockMd").addEventListener("click", async (e) => { const b = e.currentTarget; await copyText(buildMarkdown()); b.classList.add("copied"); b.textContent = "Copied"; setTimeout(() => { b.classList.remove("copied"); b.textContent = "Copy Markdown"; }, 1400); toast("Markdown copied — paste it into your README"); });
-  document.getElementById("dockUrl").addEventListener("click", async () => { await copyText(buildURL()); toast("URL copied"); });
+  document.getElementById("dockMd").addEventListener("click", async (e) => { const b = e.currentTarget; clearTimeout(b._t); b.classList.remove("copied"); b.textContent = "Copy Markdown"; if (!await copyText(buildMarkdown(), "md")) return; b.classList.add("copied"); b.textContent = "Copied"; b._t = setTimeout(() => { b.classList.remove("copied"); b.textContent = "Copy Markdown"; }, 1400); toast("Markdown copied — paste it into your README"); });
+  document.getElementById("dockUrl").addEventListener("click", async () => { if (await copyText(buildURL(), "url")) toast("URL copied"); });
   document.getElementById("openBtn").addEventListener("click", () => window.open(buildURL(), "_blank", "noopener"));
   document.getElementById("downloadBtn").addEventListener("click", async () => {
-    if (!previewReady) return;
+    if (!previewReady || previewUrl !== buildURL()) return;
+    const token = previewToken, url = previewUrl, kind = state.kind;
+    const current = () => token === previewToken && url === buildURL();
+    previewReady = false;
+    document.getElementById("downloadBtn").disabled = true;
     setPreviewStatus("loading", "Preparing SVG export…");
     try {
-      const res = await fetch(previewUrl);
+      const res = await fetch(url);
       if (!res.ok || !(res.headers.get("content-type") || "").includes("svg")) throw new Error("not svg");
-      const href = URL.createObjectURL(await res.blob());
-      const a = el("a", { href, download: "mark-" + state.kind + ".svg" });
+      const blob = await res.blob();
+      // Fetch and body decoding can both finish after another edit/render.
+      // Discard superseded exports, including their success/error messages.
+      if (!current()) return;
+      const href = URL.createObjectURL(blob);
+      const a = el("a", { href, download: "mark-" + kind + ".svg" });
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(href), 1000);
+      previewReady = true;
+      document.getElementById("downloadBtn").disabled = false;
       setPreviewStatus("ready", "SVG downloaded.");
-    } catch (_) { setPreviewStatus("error", "SVG export unavailable — retry the render first.", true); }
+    } catch (_) {
+      if (current()) setPreviewStatus("error", "SVG export unavailable — retry the render first.", true);
+    }
   });
   document.querySelectorAll("#bgSeg button").forEach(b => b.addEventListener("click", () => {
     document.querySelectorAll("#bgSeg button").forEach(x => x.classList.toggle("on", x === b));
@@ -945,6 +994,7 @@ function init(){
     document.querySelectorAll(".preset .thumb").forEach(t => t.style.background = b.dataset.bg === "light" ? "#fff" : "#0d1117");
   }));
   document.querySelectorAll("#fmtSeg button").forEach(b => b.addEventListener("click", () => {
+    ++copyToken;
     document.querySelectorAll("#fmtSeg button").forEach(x => x.classList.toggle("on", x === b));
     state.fmt = b.dataset.fmt; renderCode();
   }));
