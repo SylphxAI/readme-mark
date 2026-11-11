@@ -21,8 +21,9 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Standard hosted runners are free only while the repository is public.
   changes:
-    if: github.event_name == 'pull_request'
+    if: github.event.repository.visibility == 'public' && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -50,7 +51,7 @@ jobs:
   # queue always run it.
   rust:
     needs: changes
-    if: always() && (github.event_name != 'pull_request' || needs.changes.outputs.code != 'false')
+    if: always() && github.event.repository.visibility == 'public' && (github.event_name != 'pull_request' || needs.changes.outputs.code != 'false')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -71,6 +72,7 @@ jobs:
 
   identifiers:
     name: Identifiers
+    if: github.event.repository.visibility == 'public'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -86,6 +88,7 @@ jobs:
   # so a moved tag cannot change the check. fetch-depth 0 gives the action the
   # base history it diffs against.
   chat-senders:
+    if: github.event.repository.visibility == 'public'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -102,7 +105,7 @@ jobs:
   # self-hosted runner would accept fork pull requests' code
   # (scripts/check-owned-runner-profiles.sh).
   ci-ok:
-    if: always()
+    if: always() && github.event.repository.visibility == 'public'
     needs: [changes, rust, identifiers, chat-senders]
     runs-on: ubuntu-latest
     timeout-minutes: 5

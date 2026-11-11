@@ -1,0 +1,27 @@
+# Mark
+
+> Mark makes SVG images for READMEs and websites from a URL: hero headers, badges, skill icons and live developer cards.
+
+Public image URLs need no sign-up or API key. Embed the SVG URL in Markdown or HTML. Use the catalog for the current forms, themes, icons, parameters and limits.
+
+## Start here
+
+- [Studio](https://mark.sylphx.com/): Preview and customize an image, then copy its URL.
+- [Documentation](https://mark.sylphx.com/docs): Image routes, examples and compatibility parameters.
+- [API catalog](https://mark.sylphx.com/api/v1/catalog): Machine-readable vocabulary and size limits.
+- [Source](https://github.com/SylphxAI/readme-mark): Source code and usage documentation.
+
+## Image examples
+
+- [Hero header](https://mark.sylphx.com/api/v1/mark/hero.svg?text=Hello&theme=dark): Customize text, description, art, theme, dimensions and animation.
+- [Static badge](https://mark.sylphx.com/badge/build-passing-brightgreen.svg): A label-message-color badge; supports styles and logos.
+- [Skill icons](https://mark.sylphx.com/icons?i=rust,ts,react): A grid of technology icons.
+- [GitHub stars](https://mark.sylphx.com/github/stars/SylphxAI/readme-mark.svg): A live repository badge.
+
+## Policies and contact
+
+- [Privacy](https://mark.sylphx.com/legal/privacy)
+- [Terms](https://mark.sylphx.com/legal/terms)
+- [Acceptable use](https://mark.sylphx.com/legal/acceptable-use)
+
+Contact: hi@sylphx.com.
