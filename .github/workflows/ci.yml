@@ -113,7 +113,7 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - uses: SylphxAI/.github/.github/actions/needs-pass@96195d86b550ab1205159acb1ae0d75b1fbed47f # main
+      - uses: SylphxAI/.github/.github/actions/needs-pass@f457f737b73350e6762f84881b4ea3fb530b8e48 # main
         with:
           needs: ${{ toJSON(needs) }}
           required: >-
