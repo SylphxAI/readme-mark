@@ -6,10 +6,10 @@
     "test": "node --test tests/studio_exports.test.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   },
   "devDependencies": {
-    "jsdom": "26.1.0",
+    "jsdom": "30.1.3",
     "micromark": "4.0.3",
     "micromark-extension-gfm": "3.0.0"
   }
