@@ -94,16 +94,25 @@ async fn catalog_publishes_the_one_vocabulary() {
 }
 
 #[tokio::test]
-async fn published_catalog_is_neutral() {
+async fn catalog_publishes_only_curated_themes() {
+    // This is the documented public vocabulary, not a list derived from the
+    // renderer. Adding a theme requires an explicit change to the contract.
+    const THEMES: [&str; 8] = [
+        "dark", "light", "ocean", "sunset", "forest", "grape", "mono", "paper",
+    ];
     let v = catalog().await;
-    let mut names = strings(&v["themes"]);
-    names.extend(strings(&v["icons"]));
-    for banned in ["kyle", "sylphx", "cubeage", "epiow", "ozyrix"] {
-        assert!(
-            !names.iter().any(|n| n.eq_ignore_ascii_case(banned)),
-            "personal/company name in public catalog: {banned}"
-        );
-    }
+    assert_eq!(strings(&v["themes"]), THEMES);
+
+    let mut expected = THEMES;
+    expected.sort_unstable();
+    let mut palette_ids: Vec<_> = v["theme_palettes"]
+        .as_object()
+        .expect("theme palette object")
+        .keys()
+        .map(String::as_str)
+        .collect();
+    palette_ids.sort_unstable();
+    assert_eq!(palette_ids, expected);
 }
 
 #[tokio::test]
@@ -145,6 +154,13 @@ async fn catalog_art_types_render() {
 async fn catalog_icons_render_glyphs() {
     let v = catalog().await;
     let icons = strings(&v["icons"]);
+    let skill_icons = strings(&v["skill_icons"]);
+    for id in &icons {
+        assert!(
+            skill_icons.contains(id) || matches!(id.as_str(), "csharp" | "helm" | "node"),
+            "featured icon outside the public technology vocabulary: {id}"
+        );
+    }
     assert!(!icons.is_empty(), "catalog must advertise icons");
     let path = format!(
         "/api/v1/mark/strip?icons={}&animation=none",
@@ -176,18 +192,21 @@ async fn unknown_icon_is_the_unknown_tile() {
 }
 
 #[tokio::test]
-async fn first_party_theme_names_are_unknown_paint() {
+async fn unknown_theme_names_use_default_paint() {
     let path = "/api/v1/mark/hero?text=Hi&animation=none";
-    let (_, _, plain) = get(path).await;
-    for name in ["kyle", "sylphx", "cubeage", "epiow", "ozyrix"] {
-        let (_, _, themed) = get(&format!("{path}&theme={name}")).await;
-        assert_eq!(
-            themed, plain,
-            "first-party theme name {name} must not unlock paint"
-        );
+    let (status, _, plain) = get(path).await;
+    assert_eq!(status, StatusCode::OK);
+    for name in ["custom-company", "personal", "sylphx"] {
+        let (status, _, themed) = get(&format!("{path}&theme={name}")).await;
+        assert_eq!(status, StatusCode::OK, "theme {name}");
+        assert_eq!(themed, plain, "unknown theme {name} must use default paint");
     }
-    let (_, _, neon) = get(&format!("{path}&theme=neon")).await;
-    assert_ne!(neon, plain, "published theme must change paint");
+    let (status, _, grape) = get(&format!("{path}&theme=grape")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_ne!(grape, plain, "curated theme must change paint");
+    let (status, _, neon) = get(&format!("{path}&theme=neon")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(neon, grape, "legacy theme alias must still resolve");
 }
 
 #[tokio::test]

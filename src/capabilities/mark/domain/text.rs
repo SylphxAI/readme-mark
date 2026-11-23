@@ -263,7 +263,7 @@ mod tests {
     fn monogram_latin_and_empty_fallback() {
         assert_eq!(monogram("PDF Reader MCP"), "PR");
         assert_eq!(monogram("coderag"), "CO");
-        assert_eq!(monogram("Kyle Tse"), "KT");
+        assert_eq!(monogram("Alex Doe"), "AD");
         assert_eq!(monogram(""), "MK");
         assert_eq!(monogram("---"), "MK");
         assert_eq!(monogram("Jo"), "JO");
