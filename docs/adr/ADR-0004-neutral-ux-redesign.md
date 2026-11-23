@@ -10,12 +10,9 @@ A UI/UX review against the competitor class (capsule-render, readme-typing-svg,
 shields, github-readme-stats, skillicons) found Mark out of step where it
 matters most:
 
-- The public theme catalog baked in **personal and company names** (`kyle`,
-  `sylphx`, `cubeage`, `epiow`, `ozyrix`), and the identity form mapped brands
-  to hardcoded taglines including the owner's name ("Kyle Tse — Builder ·
-  multi-company portfolio"). Competitors' themes are strictly neutral
-  (tokyonight, dracula, dark…); identity lives in the *content* the user
-  supplies, never in the product.
+- The public theme catalog and identity form used personal and company-specific
+  theme names and taglines. Competitors use neutral themes; identity belongs in
+  the content the user supplies, not in the product.
 - The profile/identity card concept was brand-table-driven instead of
   text-driven.
 - Typography was dated on the pill (Verdana) and offered no mono option, so
@@ -27,10 +24,9 @@ matters most:
 
 ## Decision
 
-1. **Strictly neutral catalog.** Theme names, icon glyphs, and pill named
-   colors contain no personal or company names. Removed: `kyle` / `sylphx` /
-   `cubeage` / `epiow` / `ozyrix` themes, the `sylphx` tech glyph, and fleet
-   named colors. The only Sylphx-branded surfaces are the deploy mark
+1. **Neutral design defaults.** Remove personal and company-specific themes,
+   custom glyphs, and named colors. Public technology logos remain available
+   for documentation. The only Sylphx-branded marks are the deploy mark
    ("deployed on Sylphx") and the credit watermark — both explicit, opt-in,
    and product-level, never theme-level.
 2. **`identity` → `profile`, text-driven.** The brand table is deleted; the
@@ -61,9 +57,9 @@ matters most:
 - The product is now a neutral, competitor-class design surface: themes never
   embarrass, identity is always the user's own content, and the studio
   produces the exact README patterns people already love.
-- Regression guards: architecture test asserts no personal/company names in
-  themes or icons; smoke tests cover profile (text/art/width/mono), mono
-  composition, and the neutral catalog.
+- The public contract test checks the curated theme names, palette keys, and
+  fallback for unknown themes. Smoke tests cover profile text, art, width, and
+  monospace rendering.
 
 ## Evidence
 

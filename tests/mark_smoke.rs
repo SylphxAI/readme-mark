@@ -263,11 +263,11 @@ fn strip_motion_wraps_the_icon_row() {
 fn profile_renders_text_art_and_monogram() {
     let plain = render(&MarkSpec {
         form: MarkForm::Profile,
-        text: Some("Kyle Tse".into()),
+        text: Some("Alex Doe".into()),
         ..Default::default()
     });
-    assert!(plain.contains("Kyle Tse"));
-    assert!(plain.contains(">KT<"), "profile owns a name monogram");
+    assert!(plain.contains("Alex Doe"));
+    assert!(plain.contains(">AD<"), "profile owns a name monogram");
     let art = render(&MarkSpec {
         form: MarkForm::Profile,
         art: Some("aurora".into()),
@@ -291,7 +291,7 @@ fn profile_uses_native_geometry() {
         form: MarkForm::Profile,
         width: Some(320),
         height: Some(120),
-        text: Some("Kyle Tse".into()),
+        text: Some("Alex Doe".into()),
         ..Default::default()
     });
     assert!(svg.contains("width=\"320\""), "profile honors width");
@@ -389,10 +389,10 @@ fn profile_monogram_uses_non_latin_letters() {
 fn profile_omits_empty_tagline() {
     let svg = render(&MarkSpec {
         form: MarkForm::Profile,
-        text: Some("Kyle Tse".into()),
+        text: Some("Alex Doe".into()),
         ..Default::default()
     });
-    assert!(svg.contains("Kyle Tse"));
+    assert!(svg.contains("Alex Doe"));
 }
 
 #[test]
@@ -431,7 +431,7 @@ fn composition_pill_motion_and_profile_art() {
         form: MarkForm::Profile,
         art: Some("waving".into()),
         theme: Some("ocean".into()),
-        text: Some("Kyle Tse".into()),
+        text: Some("Alex Doe".into()),
         ..Default::default()
     });
     assert!(profile.contains("<svg"));
@@ -445,7 +445,7 @@ fn mono_font_composes_into_hero_and_profile() {
     assert!(hero_svg.contains("ui-monospace"), "hero mono font");
     let profile_svg = render(&MarkSpec {
         form: MarkForm::Profile,
-        text: Some("Kyle Tse".into()),
+        text: Some("Alex Doe".into()),
         font: Some("mono".into()),
         ..Default::default()
     });

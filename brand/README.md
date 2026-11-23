@@ -204,7 +204,7 @@ brand file.
 
 ## Trademark
 
-Not registered. Owner decision owner#781: no trademark filings before the product earns money. Use ™ at most, never ®.
+The Mark trademark is not registered. Use ™, not ®.
 
 ## Similarity check
 

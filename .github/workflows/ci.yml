@@ -80,7 +80,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Non-v7 ids on added lines (owner standards/identifiers.md)
+      - name: Non-v7 ids on added lines (UUIDv7)
         uses: SylphxAI/.github/.github/actions/identifiers@e4a5ea41cbcc87cd93914f89f0d7c3981c868bf9
 
   # Added lines send chat through Notify, never a direct chat-API host. The
